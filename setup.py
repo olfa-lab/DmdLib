@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name="dmdlib",
     version="0.0.1",
-    package_dir={'dmdlib': 'dmdlib'},
+    packages=['dmdlib'],
     author="Edmund Chong",
     description=("Control your DMDs."),
     license="MIT",
