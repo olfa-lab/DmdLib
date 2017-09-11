@@ -1,3 +1,4 @@
+from __future__ import print_function
 from ctypes import *
 import ctypes
 from ._alp_defns import *
@@ -39,7 +40,7 @@ class DMD(object):
         self.ImWidth, self.ImHeight = self._get_device_size()
         self.pixelsPerIm = self.ImHeight * self.ImWidth
         if verbose:
-            print 'Device image size is {} x {}.'.format(self.ImWidth, self.ImHeight)
+            print('Device image size is {} x {}.'.format(self.ImWidth, self.ImHeight))
 
     def _try_reconnect(self):
         print('trying reconnect...')
@@ -116,8 +117,13 @@ class DMD(object):
         return alp_cdll.AlpSeqControl(self.alp_id, sequence_id, controltype, controlvalue)
 
     @_api_call
-    def AlpSeqTiming(self, sequenceid, illuminatetime=ALP_DEFAULT, picturetime=ALP_DEFAULT, syncdelay=ALP_DEFAULT,
-                     syncpulsewidth=ALP_DEFAULT):
+    def AlpSeqTiming(self,
+                     sequenceid,
+                     illuminatetime=c_long(ALP_DEFAULT),
+                     picturetime=c_long(ALP_DEFAULT),
+                     syncdelay=c_long(ALP_DEFAULT),
+                     syncpulsewidth=c_long(ALP_DEFAULT),
+                     triggerindelay=c_long(ALP_DEFAULT)):
         """
         Use picturetime to specify time between consecutive pictures in us.
 
@@ -127,7 +133,8 @@ class DMD(object):
         :param syncdelay: delay between frame sync output and start of display (master mode).
         :param syncpulsewidth: length of sync out pulse (master mode), by default pulse finishes at same time as illumination.
         """
-        return alp_cdll.AlpSeqTiming(self.alp_id, sequenceid, illuminatetime, picturetime, syncdelay, syncpulsewidth)
+        return alp_cdll.AlpSeqTiming(self.alp_id, sequenceid, illuminatetime, picturetime,
+                                     syncdelay, syncpulsewidth, triggerindelay)
 
     @_api_call
     def AlpSeqInquire(self, sequenceid, inquiretype, uservarptr):
@@ -150,7 +157,7 @@ class DMD(object):
         :type controltype: c_long
         :type controlvalue: c_long
         """
-        return alp_cdll.ProjControl(self.alp_id, controltype, controlvalue)
+        return alp_cdll.AlpProjControl(self.alp_id, controltype, controlvalue)
 
     @_api_call
     def AlpProjInquire(self, inquire_type, uservarptr):
@@ -215,19 +222,19 @@ class DMD(object):
 
     def avail_memory(self):
         self.AlpDevInquire(ALP_AVAIL_MEMORY, byref(self.returnpointer))
-        print "Remaining memory: " + str(self.returnpointer.value) + " / 43690 binary frames"
+        print("Remaining memory: " + str(self.returnpointer.value) + " / 43690 binary frames")
 
     def type(self):
         self.AlpDevInquire(ALP_DEV_DMDTYPE, byref(self.returnpointer))
-        print "DMD Type: " + str(self.returnpointer.value)
+        print("DMD Type: " + str(self.returnpointer.value))
 
     def memory(self):
         self.AlpDevInquire(ALP_AVAIL_MEMORY, byref(self.returnpointer));
-        print "ALP memory: " + str(self.returnpointer.value)
+        print("ALP memory: " + str(self.returnpointer.value))
 
     def projection(self):
         self.AlpProjInquire(ALP_PROJ_MODE, byref(self.returnpointer))
-        print "ALP Projection Mode: " + str(self.returnpointer.value)
+        print("ALP Projection Mode: " + str(self.returnpointer.value))
 
     def update_temperature(self):
         self.AlpDevInquire(ALP_DDC_FPGA_TEMPERATURE, byref(self.returnpointer))
@@ -265,20 +272,20 @@ class DMD(object):
             # print 'seq uploaded'
             self.seq_handles.append(seq)
         end = time.clock()
-        print "Uploaded " + str(len(ptn)) + " in " + str(end - start) + "s"
+        print("Uploaded " + str(len(ptn)) + " in " + str(end - start) + "s")
 
     def upload_singleptn(self, ptn, dur, bitnum=1):
         # single pattern that loops. in slave mode, can be triggered every time TTL pulse received
 
-        picnum = 1L
-        stimon_time = dur * 1000L  # microseconds
-        stimoff_time = 0L
+        picnum = 1
+        stimon_time = dur * 1000  # microseconds
+        stimoff_time = 0
         seq_id = self.seq_alloc(bitnum, picnum)
 
         self.seq_handles = []
         self.seq_handles.append(seq_id)
 
-        print stimon_time, stimoff_time
+        print(stimon_time, stimoff_time)
         self.seq_timing(seq_id, stimon_time, stimoff_time)
 
         self.seq_upload(seq_id, [ptn])
@@ -287,21 +294,21 @@ class DMD(object):
     def upload_singleseq(self, ptn, framedur=10, bitnum=1):
         # single sequence with fixed frame dur
         picnum = len(ptn)
-        stimon_time = framedur * 1000L  # microseconds
-        stimoff_time = 0L
+        stimon_time = framedur * 1000  # microseconds
+        stimoff_time = 0
         seq_id = self.seq_alloc(bitnum, picnum)
 
         self.seq_handles = []
         self.seq_handles.append(seq_id)
 
-        print 'UPLOADING TO ALP...'
-        print len(ptn)
+        print('UPLOADING TO ALP...')
+        print(len(ptn))
         start = time.clock()
         self.seq_timing(seq_id, stimon_time, stimoff_time)
         self.seq_upload(seq_id, ptn)
         end = time.clock()
 
-        print 'Sequence uploaded in ' + str(end - start) + ' ms'
+        print('Sequence uploaded in ' + str(end - start) + ' ms')
 
     def Ptn2Char(self, ptn):
         # handle ALP patterns
@@ -359,29 +366,29 @@ class DMD(object):
 
         if mode in alpmode:
             returnvalue = self.AlpProjControl(ALP_PROJ_MODE, alpmode[mode])
-            print 'set PROJ_MODE: ' + mode + ' ' + str(returnvalue)
+            print('set PROJ_MODE: ' + mode + ' ' + str(returnvalue))
 
             if mode == 'TTL_seqonset':
                 # sequence init upon TTL
                 self.set_trigger_edge('rising')
 
-                print mode + str(returnvalue)
+                print(mode + str(returnvalue))
 
             if mode == 'single_TTL':
                 # frames are advanced when TTL pulse is high, in sequence queue mode
 
                 returnvalue = self.AlpProjControl(ALP_PROJ_STEP, ALP_LEVEL_HIGH)
                 # step to next frame on rising TTL edge
-                print 'single_TTL: ' + str(returnvalue)
+                print('single_TTL: ' + str(returnvalue))
 
                 self.seq_queue_mode()
 
         else:
             self.stop()
             self.shutdown()
-            print "Desired mode is: " + "'" + str(mode) + "'"
-            print "Available modes are: "
-            print alpmode.keys()
+            print("Desired mode is: " + "'" + str(mode) + "'")
+            print("Available modes are: ")
+            print(alpmode.keys())
             raise ValueError('Cannot set projector mode, shutting down...')
 
     def seq_alloc(self, bitnum, picnum):
@@ -403,7 +410,7 @@ class DMD(object):
         returnvalue = self.AlpSeqFree(seq_id)
         if returnvalue == 1003:
             raise ValueError('Try DMD.stop() before attempting to release sequence')
-        print 'seq_free: ' + str(returnvalue)
+        print('seq_free: ' + str(returnvalue))
 
     def seq_free_all(self):
         """clear all sequences from DMD"""
@@ -445,11 +452,11 @@ class DMD(object):
 
     def seq_start_loop(self, seq_id):
         returnvalue = self.AlpProjStartCont(seq_id)
-        print 'seq_start (loops): ' + str(returnvalue)
+        print('seq_start (loops): ' + str(returnvalue))
 
     def seq_queue_mode(self):
         returnvalue = self.AlpProjControl(ALP_PROJ_QUEUE_MODE, ALP_PROJ_SEQUENCE_QUEUE)
-        print 'Sequence queue set with : ' + str(returnvalue)
+        # print 'Sequence queue set with : ' + str(returnvalue)
 
     def set_trigger_edge(self, edge_type):
         alp_edge_type = {'rising':
@@ -461,23 +468,23 @@ class DMD(object):
         if edge_type in alp_edge_type:
             alp_trigger_value = alp_edge_type[edge_type]
             returnvalue = self.AlpDevControl(ALP_TRIGGER_EDGE, alp_trigger_value)
-            print edge_type + ' trigger set with value: ' + str(returnvalue)
+            print(edge_type + ' trigger set with value: ' + str(returnvalue))
 
         else:
             self.stop()
             self.shutdown()
-            print "Desired trigger is: " + "'" + str(edge_type) + "'"
-            print "Available modes are: "
-            print alp_edge_type.keys()
+            print("Desired trigger is: " + "'" + str(edge_type) + "'")
+            print("Available modes are: ")
+            print(alp_edge_type.keys())
             raise ValueError('Cannot set trigger edge , shutting down...')
 
     def stop(self):
         returnvalue = self.AlpDevHalt()
-        print 'seq_stop: ' + str(returnvalue)
+        print('seq_stop: ' + str(returnvalue))
 
     def shutdown(self):
         returnvalue = self.AlpDevFree()
-        print 'Shutdown value: ' + str(returnvalue)
+        print('Shutdown value: ' + str(returnvalue))
 
     def __del__(self):
         self.shutdown()
