@@ -142,6 +142,17 @@ class DMD(object):
 
     @_api_call
     def AlpSeqPut(self, sequenceid, picoffset, picload, userarrayptr):
+        """
+        Loads image bytes into pre-allocated ALP memory (allocation using AlpSeqAlloc)
+
+        ** Blocking until sequence is loaded. **
+
+        :param sequenceid: id of sequence (returned when sequence are allocated).
+        :param picoffset: offset in pictures from which to load from the buffer (usually 0)
+        :param picload: number of pics to load
+        :param userarrayptr: C-order c_char array.
+        :return:
+        """
         return alp_cdll.AlpSeqPut(self.alp_id, sequenceid, picoffset, picload, userarrayptr)
 
     @_api_call
