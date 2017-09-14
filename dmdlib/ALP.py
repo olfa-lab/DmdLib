@@ -146,7 +146,7 @@ class DMD(object):
         return alp_cdll.AlpSeqInquire(self.alp_id, sequenceid, inquiretype, uservarptr)
 
     @_api_call
-    def AlpSeqPut(self, sequenceid, picoffset, picload, userarrayptr):
+    def AlpSeqPut(self, sequenceid, picoffset, n_pix, userarrayptr):
         """
         Loads image bytes into pre-allocated ALP memory (allocation using AlpSeqAlloc)
 
@@ -154,11 +154,11 @@ class DMD(object):
 
         :param sequenceid: id of sequence (returned when sequence are allocated).
         :param picoffset: offset in pictures from which to load from the buffer (usually 0)
-        :param picload: number of pics to load
+        :param n_pix: number of pics to load
         :param userarrayptr: C-order c_char array.
         :return:
         """
-        return alp_cdll.AlpSeqPut(self.alp_id, sequenceid, picoffset, picload, userarrayptr)
+        return alp_cdll.AlpSeqPut(self.alp_id, sequenceid, picoffset, n_pix, userarrayptr)
 
     @_api_call
     def AlpSeqFree(self, sequenceid):
@@ -257,7 +257,7 @@ class DMD(object):
 
     def projection(self):
         self.AlpProjInquire(ALP_PROJ_MODE, byref(self.returnpointer))
-        print("ALP Projection Mode: " + str(self.returnpointer.value))
+        # print("ALP Projection Mode: " + str(self.returnpointer.value))
 
     def update_temperature(self):
         self.AlpDevInquire(ALP_DDC_FPGA_TEMPERATURE, byref(self.returnpointer))
@@ -503,11 +503,11 @@ class DMD(object):
 
     def stop(self):
         returnvalue = self.AlpDevHalt()
-        print('seq_stop: ' + str(returnvalue))
+        # print('seq_stop: ' + str(returnvalue))
 
     def shutdown(self):
         returnvalue = self.AlpDevFree()
-        print('Shutdown value: ' + str(returnvalue))
+        # print('Shutdown value: ' + str(returnvalue))
 
     def __del__(self):
         self.stop()
@@ -530,3 +530,40 @@ try:
 except WindowsError as e:
     raise AlpError("The directory containing 'alpV42.dll' is not found in the system (Windows) path. "
                    "Please add it to use this package.")
+
+
+def powertest(square_size=159):
+    # import matplotlib.pyplot as plt
+    """
+
+    :param square_size:
+    :return:
+    """
+    dmd = DMD()
+    dmd.seq_queue_mode()
+    dmd.proj_mode('master')
+    seq_id = c_long()
+    dmd.AlpSeqAlloc(c_long(1), c_long(1), byref(seq_id))
+    dmd.AlpSeqControl(seq_id, ALP_BIN_MODE, ALP_BIN_UNINTERRUPTED)
+    dmd.AlpSeqTiming(seq_id)
+
+    seq_array = np.zeros((dmd.h, dmd.w), 'uint8')
+    center_x, center_y = [x//2 for x in (dmd.w, dmd.h)]
+    st_x, st_y = [x - square_size // 2 for x in (center_x, center_y)]
+    nd_x, nd_y = [x - (-square_size // 2) for x in (center_x, center_y)]
+    seq_array[st_y:nd_y, st_x:nd_x] = 255
+    # plt.imshow(seq_array); plt.show()
+    # print(seq_array.sum()/255.)
+
+    dmd.AlpSeqPut(seq_id, c_long(0), c_long(1), seq_array.ctypes.data_as(POINTER(c_char)))
+    dmd.AlpProjStartCont(seq_id)
+
+    input("Press Enter key to end...")
+
+    dmd.AlpProjHalt()
+    # dmd.stop()
+    # dmd.shutdown()
+
+
+
+
