@@ -1,3 +1,4 @@
+from ctypes import Structure, c_long, c_ulong
 '''ALP definitions file'''
 '''copied from alp.h'''
 # stuff excluded: LED control, code for backward compatibility, fn definitionss
@@ -247,6 +248,47 @@ ALP_PROJ_ABORT_FRAME = 2321  # similar, but abort after next frame
 ALP_PROJ_WAIT_UNTIL = 2323  # When does AlpProjWait complete regarding the last frame? or after picture time of last frame
 ALP_PROJ_WAIT_PIC_TIME = 0  # ALP_DEFAULT: AlpProjWait returns after picture time
 ALP_PROJ_WAIT_ILLU_TIME = 1  # AlpProjWait returns after illuminate time (except binary uninterrupted sequences, because an "illuminate time" is not applicable there)
+
+class AlpProjProgress(Structure):
+	_fields_ = [
+		("CurrentQueueId", c_ulong),
+		("SequenceId", c_ulong),
+		("nWaitingSequences", c_ulong),
+		("nSequenceCounter", c_ulong),
+		("nSequenceCounterUnderflow", c_ulong),
+		("nFrameCounter", c_ulong),
+		("nPictureTime", c_ulong),
+		("nFramesPerSubSequence", c_ulong),
+		("nFlags", c_ulong)
+	]
+
+
+"""
+struct tAlpProjProgress {
+	ALP_ID CurrentQueueId;
+	ALP_ID SequenceId;		/* Consider that a sequence can be enqueued multiple times! */
+	unsigned long nWaitingSequences;	/* number of sequences waiting in the queue */
+
+	/* track iterations and frames: device-internal counters are incompletely
+		reported; The API description contains more details on that. */
+	unsigned long nSequenceCounter;		/* number of iterations to be done */
+	unsigned long nSequenceCounterUnderflow;	/* nSequenceCounter can
+		underflow (for indefinitely long Sequences: AlpProjStartCont);
+		nSequenceCounterUnderflow is 0 before, and non-null afterwards */
+	unsigned long nFrameCounter;	/* frames left inside current iteration */
+
+	unsigned long nPictureTime;	/* micro seconds of each frame; this is
+		reported, because the picture time of the original sequence could
+		already have changed in between */
+	unsigned long nFramesPerSubSequence;	/* Each sequence iteration
+		displays this number of frames. It is reported to the user just for
+		convenience, because it depends on different parameters. */
+
+	unsigned long nFlags;	/* may be a combination of ALP_FLAG_SEQUENCE_ABORTING | SEQUENCE_INDEFINITE | QUEUE_IDLE | FRAME_FINISHED */
+};
+"""
+
+
 
 ''' #== TODO : HOW TO MAKE UNSIGNED LONG IN PYTHON?
 define ALP_FLAG_QUEUE_IDLE                1UL

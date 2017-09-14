@@ -38,6 +38,7 @@ class DMD(object):
             raise AlpError('Device is in low power float mode, check power supply.')
 
         self.ImWidth, self.ImHeight = self._get_device_size()
+        self.w, self.h = self.ImWidth, self.ImHeight
         self.pixelsPerIm = self.ImHeight * self.ImWidth
         if verbose:
             print('Device image size is {} x {}.'.format(self.ImWidth, self.ImHeight))
@@ -60,6 +61,10 @@ class DMD(object):
         elif returnval == ALP_NOT_AVAILABLE:
             self.connected = False
             raise AlpError('ALP_NOT_AVAILABLE')
+        elif returnval == ALP_NOT_IDLE:
+            raise AlpError('ALP_NOT_IDLE')
+        elif returnval == ALP_SEQ_IN_USE:
+            raise AlpError('ALP_SEQ_IN_USE')
         elif returnval == ALP_PARM_INVALID:
             raise AlpError('ALP_PARM_INVALID')
         elif returnval == ALP_ADDR_INVALID:
@@ -176,7 +181,14 @@ class DMD(object):
 
     @_api_call
     def AlpProjInquireEx(self, inquire_type, userstructptr):
-        raise NotImplementedError
+        """
+        Retrieve progress information about active sequences and the sequence queue. The required data structure is
+        AlpProjProgress. See also Inquire Progress of Active Sequences.
+
+        :param inquire_type: ALP_PROJ_PROGRESS
+        :param userstructptr: pointer to AlpProjProgress structure.
+        """
+        return alp_cdll.AlpProjInquireEx(self.alp_id, inquire_type, userstructptr)
 
     @_api_call
     def AlpProjStart(self, sequenceid):
@@ -498,6 +510,7 @@ class DMD(object):
         print('Shutdown value: ' + str(returnvalue))
 
     def __del__(self):
+        self.stop()
         self.shutdown()
 
 
