@@ -501,12 +501,22 @@ class DMD(object):
             print(alp_edge_type.keys())
             raise ValueError('Cannot set trigger edge , shutting down...')
 
+    def make_sequence_array(self, n_pix=1):
+        """ make an array to hold n_pix number of frames.
+        :param n_pix: number of images (frames) in the sequence.
+        :return: numpy uint8 array (n, h, w)
+        """
+        return np.zeros((n_pix, self.h, self.w), dtype='uint8')
+
     def stop(self):
-        returnvalue = self.AlpDevHalt()
+        if self.connected:
+            returnvalue = self.AlpDevHalt()
         # print('seq_stop: ' + str(returnvalue))
 
     def shutdown(self):
-        returnvalue = self.AlpDevFree()
+        if self.connected:
+            returnvalue = self.AlpDevFree()
+            self.connected = False
         # print('Shutdown value: ' + str(returnvalue))
 
     def __del__(self):
@@ -532,7 +542,7 @@ except WindowsError as e:
                    "Please add it to use this package.")
 
 
-def powertest(square_size=159):
+def powertest(square_size=160):
     # import matplotlib.pyplot as plt
     """
 
@@ -562,8 +572,51 @@ def powertest(square_size=159):
 
     dmd.AlpProjHalt()
     # dmd.stop()
-    # dmd.shutdown()
+    dmd.shutdown()
 
 
+def disp_affine_pattern(coords=([450, 300], [550, 275], [500, 430])):
+    # import matplotlib.pyplot as plt
+    dmd, seq_id = init_static_dmd()
+    seq_arr = dmd.make_sequence_array()
+    print(seq_arr.shape)
+    for c in coords:
+        x, y = c
+        seq_arr[0, y, x] = 255  # seq array is h, w indexed.
+
+    dmd.AlpSeqPut(seq_id, c_long(0), c_long(1), seq_arr.ctypes.data_as(POINTER(c_char)))
+    dmd.AlpProjStartCont(seq_id)
+    # plt.imshow(seq_arr[0,:,:]); plt.show()
+
+    input("Press Enter key to end...")
+    dmd.AlpProjHalt()
+    dmd.shutdown()
+    return coords
 
 
+def disp_image_pattern(img: np.ndarray, dmd=None):
+    assert img.dtype == np.uint8
+    dmd, seq_id = init_static_dmd()
+    if img.shape == (dmd.h, dmd.w):
+        dmd.AlpSeqPut(seq_id, c_long(0), c_long(1), img.ctypes.data_as(POINTER(c_char)))
+        dmd.AlpProjStartCont(seq_id)
+        input('Press Enter key to end...')
+        dmd.AlpProjHalt()
+    dmd.shutdown()
+    return
+
+
+def init_static_dmd() -> (DMD, c_long):
+    """initialize dmd for static (continuous) display of single image.
+
+    :return: c_long seq_id for upload later.
+    """
+    dmd = DMD()
+    dmd.seq_queue_mode()
+    dmd.proj_mode('master')
+    seq_id = c_long()
+    dmd.AlpSeqAlloc(c_long(1), c_long(1), byref(seq_id))
+    dmd.AlpSeqControl(seq_id, ALP_BIN_MODE, ALP_BIN_UNINTERRUPTED)
+    dmd.AlpSeqTiming(seq_id)
+
+    return dmd, seq_id
