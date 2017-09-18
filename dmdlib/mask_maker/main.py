@@ -57,7 +57,6 @@ class MainWidget(QWidget):
         self.maskRegistered.connect(self.controlwidget.mask_disp_button.setEnabled)  # enable when mask is actually available for display.
         self.maskRegistered.connect(self.controlwidget.mask_disp_stop_button.setEnabled)
         self.maskRegistered.connect(self.controlwidget.mask_save_button.setEnabled)
-        print(self.config[TRANSFORM_CONFIG_PATH_KEY])
         try:
             if TRANSFORM_CONFIG_PATH_KEY in self.config.keys() and os.path.exists(self.config[TRANSFORM_CONFIG_PATH_KEY]):
                 self.load_transform(self.config[TRANSFORM_CONFIG_PATH_KEY])
@@ -283,7 +282,9 @@ class ImageWidget(QGraphicsView):
         # self.scene().addRect(100, 0, 80, 100, QPen(Qt.black), QBrush(Qt.blue))
         self.polypen = QPen()
         self.polypen.setWidth(2)
-        self.polypen.setColor(Qt.red)
+        red70 = QColor(Qt.red)
+        red70.setAlphaF(.7)
+        self.polypen.setColor(red70)
         self.polygon = self.scene().addPolygon(QPolygonF(), self.polypen)  # todo: add pen and other formatting items.
         nullsz = 500
         self.polygon_mask = np.zeros([1, 1], bool)
@@ -390,7 +391,7 @@ def config_path():
     else:  # assume posix
         appdataroot = os.path.expanduser('~')
         appdatapath = os.path.join(appdataroot, '.dmdlib')
-    return os.path.join(appdatapath, 'selector.json')
+    return os.path.join(appdatapath, 'mask_maker_config.json')
 
 
 def get_config():

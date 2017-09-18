@@ -57,7 +57,7 @@ def random_sequence_generator(arr):
 
 
 @nb.jit(parallel=True, nopython=True)
-def zoomer(arr_in, scale, arr_out):
+def zoomer(arr_in, scale, arr_out, mask):
     """
     Fast nd array image rescaling for 3 dimensional image arrays expressed as numpy arrays.
     Writes directly to arr_out. ARR_OUT MUST be the correct size, as numba has weak boundary checking!!!!
@@ -66,15 +66,20 @@ def zoomer(arr_in, scale, arr_out):
     :param scale: scale value. 1 pixel in arr in will be scale by scale pixels in output array.
     :param arr_out: array to write to.
     """
+    count = 0
     a, b, c = arr_in.shape
     for i in nb.prange(a):
         for j in range(b):
             j_st = j * scale
             j_nd = (j + 1) * scale
             for k in range(c):
-                k_st = k * scale
-                k_nd = (k + 1) * scale
-                arr_out[i, j_st:j_nd, k_st:k_nd] = arr_in[i, j, k]
+                # arr_out[i, j_st:j_nd, k_st:k_nd] = arr_in[i, j, k] & mask[j, k] * 255
+                if arr_in[i, j, k]:
+                    k_st = k * scale
+                    k_nd = (k + 1) * scale
+                    arr_out[i, j_st:j_nd, k_st:k_nd] = 255
+                    # count += 1
+                # arr_out[i, j_st:j_nd, k_st:k_nd] = arr_in[i, j, k] * 255
 
 
 def setup_record(filename, uuid=''):
@@ -111,7 +116,7 @@ def save_sequence(filename, save_groupname, leaf_id, data, metadata={}):
     return
 
 
-def generate_upload(seq_array_bool, seq_array, scale: int, debug=False):
+def generate_upload(seq_array_bool, seq_array, scale: int, debug=False, mask=None):
     """ Generates a sequence for upload to DMD.
 
     :param seq_array_bool: boolean ndarray to write the random bits, dimensions (N_pix, H_dmd/scale, W_dmd/scale)
@@ -122,13 +127,14 @@ def generate_upload(seq_array_bool, seq_array, scale: int, debug=False):
     """
     if not debug:
         random_sequence_generator(seq_array_bool)
-        zoomer(seq_array_bool, scale, seq_array)
+        zoomer(seq_array_bool, scale, seq_array, mask)
     else:
         global _DEBUG_COUNTER  # a bit messy, but I don't want to spend to much time on the debug cleanliness.
         # _DEBUG_COUNTER += seq_array_bool.shape[0]
         number_sequence_generator(_DEBUG_COUNTER, seq_array)
         _DEBUG_COUNTER += seq_array_bool.shape[0]
-    seq_array *= 255  # because we're passing a bytes array, we need the MSB to be 1.
+    # print(seq_array.mean())
+    seq_array[:] *= mask
 
 
 def gen_refresh(freshness, current):
@@ -174,7 +180,7 @@ class AlphaCounter():
 
 def presenter(
         total_presentations: int, save_path: str, save_groupname: str, nseqs=3, pix_per_seq=250, nbits=1,
-        picture_time=1000 * 10, image_scale=4, seq_debug=False,
+        picture_time=1000 * 10, image_scale=4, seq_debug=False, mask=None
 ):
     """
 
@@ -220,7 +226,7 @@ def presenter(
             dmd.AlpSeqControl(seq_id, ALP_BIN_MODE, ALP_BIN_UNINTERRUPTED)
     for i in trange(nseqs, desc='Uploading initial sequences', unit='seq'):
         seq_id = sequence_ids[i]
-        generate_upload(seq_array_bool, seq_array, image_scale, seq_debug)
+        generate_upload(seq_array_bool, seq_array, image_scale, seq_debug, mask)
         seq_meta_dict = {
             'sync_pulse_dur_us': sequence_pulse_lengths[seq_id.value],
             'seq_id': seq_id.value,
@@ -246,7 +252,7 @@ def presenter(
             if last_uploaded_image_number < total_presentations:
                 refresh = gen_refresh(sequence_freshness, dmd_proj_status.SequenceId)
                 for seq_id in refresh:
-                    generate_upload(seq_array_bool, seq_array, image_scale, seq_debug)
+                    generate_upload(seq_array_bool, seq_array, image_scale, seq_debug, mask)
                     seq_meta_dict = {
                         'sync_pulse_dur_us': sequence_pulse_lengths[seq_id.value],
                         'seq_id': seq_id.value,
@@ -265,8 +271,18 @@ def presenter(
         pbar.update(pix_per_seq)  # todo: this is a hack...
 
 
-def main(total_presentations, save_filepath, picture_time=1000 * 10, image_scale=4, file_overwrite=False,
+def main(total_presentations, save_filepath, mask_filepath=None, picture_time=1000 * 10, image_scale=4, file_overwrite=False,
          seq_debug=False):
+
+    if mask_filepath:
+        mask = np.load(mask_filepath)
+        print(type(mask))
+        print(mask.dtype)
+        # mask = np.ones((dmd.h, dmd.w), dtype=bool)
+        # print(mask.sum())
+        # mask = ~mask  # invert, the mask polygon is inclusive of the area we want to illuminate, and we want to use the mask to set everything outside this to 0.
+    else:
+        mask = None
     fullpath = os.path.abspath(save_filepath)
     if not file_overwrite and os.path.exists(save_filepath):
         errst = "{} already exists.".format(fullpath)
@@ -283,11 +299,12 @@ def main(total_presentations, save_filepath, picture_time=1000 * 10, image_scale
         print("Starting presentation run {} of {} ({}).".format(i+1, n_runs, run_id))
         ephys_comms.send_message('Starting presentation {}'.format(run_id))
         presenter(presentations_per, save_filepath, run_id, picture_time=picture_time,
-                  image_scale=image_scale, seq_debug=seq_debug)
+                  image_scale=image_scale, seq_debug=seq_debug, mask=mask)
     print('waiting for saver to shutdown...')
     saver.shutdown()
 
 
 if __name__ == '__main__':
     pth = 'F:\\tester.h5'
-    main(1*10*6, pth, file_overwrite=True, seq_debug=False, picture_time=10*1000)
+    mskfile = r"C:\Users\labadmin\Dropbox\patterns\new DMD characterization\mask_maker_test\mask1.npy"
+    main(1*10*6, pth, file_overwrite=True, seq_debug=False, picture_time=10*1000, mask_filepath=mskfile)
