@@ -57,7 +57,7 @@ def random_sequence_generator(arr):
 
 
 @nb.jit(parallel=True, nopython=True)
-def zoomer(arr_in, scale, arr_out, mask):
+def zoomer(arr_in, scale, arr_out):
     """
     Fast nd array image rescaling for 3 dimensional image arrays expressed as numpy arrays.
     Writes directly to arr_out. ARR_OUT MUST be the correct size, as numba has weak boundary checking!!!!
@@ -66,20 +66,16 @@ def zoomer(arr_in, scale, arr_out, mask):
     :param scale: scale value. 1 pixel in arr in will be scale by scale pixels in output array.
     :param arr_out: array to write to.
     """
-    count = 0
     a, b, c = arr_in.shape
     for i in nb.prange(a):
         for j in range(b):
             j_st = j * scale
             j_nd = (j + 1) * scale
             for k in range(c):
-                # arr_out[i, j_st:j_nd, k_st:k_nd] = arr_in[i, j, k] & mask[j, k] * 255
                 if arr_in[i, j, k]:
                     k_st = k * scale
                     k_nd = (k + 1) * scale
                     arr_out[i, j_st:j_nd, k_st:k_nd] = 255
-                    # count += 1
-                # arr_out[i, j_st:j_nd, k_st:k_nd] = arr_in[i, j, k] * 255
 
 
 def setup_record(filename, uuid=''):
@@ -127,14 +123,14 @@ def generate_upload(seq_array_bool, seq_array, scale: int, debug=False, mask=Non
     """
     if not debug:
         random_sequence_generator(seq_array_bool)
-        zoomer(seq_array_bool, scale, seq_array, mask)
+        zoomer(seq_array_bool, scale, seq_array)
     else:
         global _DEBUG_COUNTER  # a bit messy, but I don't want to spend to much time on the debug cleanliness.
         # _DEBUG_COUNTER += seq_array_bool.shape[0]
         number_sequence_generator(_DEBUG_COUNTER, seq_array)
         _DEBUG_COUNTER += seq_array_bool.shape[0]
     # print(seq_array.mean())
-    seq_array[:] *= mask
+    seq_array[:] *= mask  # mask is 1 in areas we want to stimulate and 0 otherwise. This is faster than alternatives.
 
 
 def gen_refresh(freshness, current):
@@ -275,12 +271,7 @@ def main(total_presentations, save_filepath, mask_filepath=None, picture_time=10
          seq_debug=False):
 
     if mask_filepath:
-        mask = np.load(mask_filepath)
-        print(type(mask))
-        print(mask.dtype)
-        # mask = np.ones((dmd.h, dmd.w), dtype=bool)
-        # print(mask.sum())
-        # mask = ~mask  # invert, the mask polygon is inclusive of the area we want to illuminate, and we want to use the mask to set everything outside this to 0.
+        mask = np.load(mask_filepath)  # the mask is true in the area we want to illuminate.
     else:
         mask = None
     fullpath = os.path.abspath(save_filepath)
@@ -305,6 +296,6 @@ def main(total_presentations, save_filepath, mask_filepath=None, picture_time=10
 
 
 if __name__ == '__main__':
-    pth = 'F:\\tester.h5'
-    mskfile = r"C:\Users\labadmin\Dropbox\patterns\new DMD characterization\mask_maker_test\mask1.npy"
-    main(1*10*6, pth, file_overwrite=True, seq_debug=False, picture_time=10*1000, mask_filepath=mskfile)
+    pth = r"D:\patters\mouse_11102\pats_run3.h5"
+    mskfile = r"D:\patters\mouse_11102\mask_right_bulb.npy"
+    main(1*10**6, pth, file_overwrite=False, seq_debug=False, picture_time=10*1000, mask_filepath=mskfile)

@@ -62,13 +62,15 @@ class MainWidget(QWidget):
                 self.load_transform(self.config[TRANSFORM_CONFIG_PATH_KEY])
         except:
             pass
+        self._saved = False
 
     @pyqtSlot()
     def load_transform(self, filepath=None):
         startpath = None
         try:
             if TRANSFORM_CONFIG_PATH_KEY in self.config.keys() and os.path.exists(self.config[TRANSFORM_CONFIG_PATH_KEY]):
-                self.load_transform(self.config[TRANSFORM_CONFIG_PATH_KEY])
+                filepath = self.config[TRANSFORM_CONFIG_PATH_KEY]
+
         except:
             pass
         self.transformLoaded.emit(False)
@@ -86,6 +88,7 @@ class MainWidget(QWidget):
             try:
                 with open(filepath, 'rb') as f:
                     transform_dict = pickle.load(f)
+                    print("transform loaded at {}".format(filepath))
                     self.cam_to_dmd_transform = transform_dict['cam_to_dmd']
                     self.transformLoaded.emit(True)
                     self.config[TRANSFORM_CONFIG_PATH_KEY] = filepath
@@ -151,7 +154,9 @@ class MainWidget(QWidget):
         else:
             try:
                 if IMAGE_CONFIG_PATH_KEY in self.config.keys():
+                    # print(self.config[IMAGE_CONFIG_PATH_KEY])
                     startpath, _ = os.path.split(self.config[IMAGE_CONFIG_PATH_KEY])
+                    # print(startpath)
             except:
                 pass
         filepath = None
@@ -172,13 +177,15 @@ class MainWidget(QWidget):
             loader = image_loaders[ext]
             img = loader(filepath)
             self.imageLoaded.emit(img)
+            self.config[IMAGE_CONFIG_PATH_KEY] = filepath
+            save_config(self.config)
         return
 
     @pyqtSlot()
     def save_mask(self):
         filepath = None
         d = QFileDialog()
-        print(self._cwd)
+        # print(self._cwd)
         if self._cwd:
             d.setDirectory(self._cwd)
         d.setWindowTitle('Save mask')
@@ -188,6 +195,7 @@ class MainWidget(QWidget):
         if d is not None and d.exec_():
             filepath = d.selectedFiles()[0]
             self._cwd, _ = os.path.split(filepath)
+        # print(self.dmd_mask.shape)
         if filepath is not None:
             np.save(filepath, self.dmd_mask.astype('bool'))
 
@@ -306,6 +314,7 @@ class ImageWidget(QGraphicsView):
             print('This polygon has no area!!!')
             return
         polygon_mask = np.zeros(self.im_shape, dtype=bool)
+        # print(polygon_mask.shape)
         progress = QProgressDialog()
         progress.setWindowModality(Qt.WindowModal)
         progress.setLabelText('Calculating mask...')
@@ -335,7 +344,7 @@ class ImageWidget(QGraphicsView):
                 # system of our mask bitmap, we're traverse the test point over the entire image pixmap area.
                 # And since the QPolygon is in scene coordinates too, everything works.
                 i += 1
-                if not i % 25:
+                if not i % 500:
                     progress.setValue(i)
         self.mask_generated.emit(polygon_mask)
 
