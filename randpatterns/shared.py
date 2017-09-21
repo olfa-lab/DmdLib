@@ -10,6 +10,7 @@ from string import ascii_lowercase
 import warnings
 import time
 import uuid
+import numba as nb
 
 warnings.filterwarnings('ignore', category=tb.NaturalNameWarning)
 
@@ -20,6 +21,30 @@ dmd.proj_mode('master')
 rv = c_long()
 
 saver = concurrent.futures.ThreadPoolExecutor(1)
+
+
+@nb.jit(parallel=True, nopython=True)
+def zoomer(arr_in, scale, arr_out):
+    """
+    Fast nd array image rescaling for 3 dimensional image arrays expressed as numpy arrays.
+    Writes directly to arr_out. ARR_OUT MUST be the correct size, as numba has weak boundary checking!!!!
+
+    :param arr_in: boolean array
+    :param scale: scale value. 1 pixel in arr in will be scale by scale pixels in output array.
+    :param arr_out: array to write to.
+    """
+    a, b, c = arr_in.shape
+    for i in nb.prange(a):
+        for j in range(b):
+            j_st = j * scale
+            j_nd = (j + 1) * scale
+            for k in range(c):
+                k_st = k * scale
+                k_nd = (k + 1) * scale
+                if arr_in[i, j, k]:
+                    arr_out[i, j_st:j_nd, k_st:k_nd] = 255
+                else:
+                    arr_out[i, j_st:j_nd, k_st:k_nd] = 0
 
 
 def setup_record(filename, uuid=''):
@@ -99,7 +124,7 @@ class AlphaCounter():
 
 def presenter(
         total_presentations: int, save_path: str, save_groupname: str, sequence_generator: staticmethod, nseqs=3, pix_per_seq=250, nbits=1,
-        picture_time=1000 * 10, image_scale=4, seq_debug=False, mask=None,):
+        picture_time=1000 * 10, image_scale=4, seq_debug=False, mask=None, **kwargs):
     """
 
     :param total_presentations: total images to present
@@ -146,7 +171,7 @@ def presenter(
             dmd.AlpSeqControl(seq_id, ALP_BIN_MODE, ALP_BIN_UNINTERRUPTED)
     for i in trange(nseqs, desc='Uploading initial sequences', unit='seq'):
         seq_id = sequence_ids[i]
-        sequence_generator(seq_array_bool, seq_array, image_scale, seq_debug, mask)
+        sequence_generator(seq_array_bool, seq_array, image_scale, seq_debug, mask, **kwargs)
         seq_meta_dict = {
             'sync_pulse_dur_us': sequence_pulse_lengths[seq_id.value],
             'seq_id': seq_id.value,
@@ -172,7 +197,7 @@ def presenter(
             if last_uploaded_image_number < total_presentations:
                 refresh = gen_refresh(sequence_freshness, dmd_proj_status.SequenceId)
                 for seq_id in refresh:
-                    sequence_generator(seq_array_bool, seq_array, image_scale, seq_debug, mask)
+                    sequence_generator(seq_array_bool, seq_array, image_scale, seq_debug, mask, **kwargs)
                     seq_meta_dict = {
                         'sync_pulse_dur_us': sequence_pulse_lengths[seq_id.value],
                         'seq_id': seq_id.value,
@@ -192,7 +217,7 @@ def presenter(
 
 
 def main(total_presentations, save_filepath, sequence_generator, mask_filepath=None, picture_time=1000 * 10,
-         image_scale=4, file_overwrite=False, seq_debug=False):
+         image_scale=4, file_overwrite=False, seq_debug=False, **kwargs):
     if mask_filepath:
         mask = np.load(mask_filepath)  # the mask is true in the area we want to illuminate.
     else:
@@ -216,7 +241,7 @@ def main(total_presentations, save_filepath, sequence_generator, mask_filepath=N
             print("Starting presentation run {} of {} ({}).".format(i+1, n_runs, run_id))
             ephys_comms.send_message('Starting presentation {}'.format(run_id))
             presenter(presentations_per, save_filepath, run_id, sequence_generator, picture_time=picture_time,
-                      image_scale=image_scale, seq_debug=seq_debug, mask=mask)
+                      image_scale=image_scale, seq_debug=seq_debug, mask=mask, **kwargs)
     except KeyboardInterrupt:
         print('Keyboard interrupt...')
     finally:

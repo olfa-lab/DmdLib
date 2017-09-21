@@ -1,37 +1,12 @@
 import test_imgen
-from ctypes import *
 import numba as nb
 import random
-from shared import main
+from shared import main, zoomer
 
 
 
 
 _DEBUG_COUNTER = 0  # only used with debug routine to test sequentiality of images.
-
-
-@nb.jit(parallel=True, nopython=True)
-def zoomer(arr_in, scale, arr_out):
-    """
-    Fast nd array image rescaling for 3 dimensional image arrays expressed as numpy arrays.
-    Writes directly to arr_out. ARR_OUT MUST be the correct size, as numba has weak boundary checking!!!!
-
-    :param arr_in: boolean array
-    :param scale: scale value. 1 pixel in arr in will be scale by scale pixels in output array.
-    :param arr_out: array to write to.
-    """
-    a, b, c = arr_in.shape
-    for i in nb.prange(a):
-        for j in range(b):
-            j_st = j * scale
-            j_nd = (j + 1) * scale
-            for k in range(c):
-                k_st = k * scale
-                k_nd = (k + 1) * scale
-                if arr_in[i, j, k]:
-                    arr_out[i, j_st:j_nd, k_st:k_nd] = 255
-                else:
-                    arr_out[i, j_st:j_nd, k_st:k_nd] = 0
 
 
 def number_sequence_generator(startnum, seq_array):
@@ -61,7 +36,7 @@ def random_sequence_generator(arr):
                 arr[i, j, k] = random.getrandbits(1)
 
 
-def generate_upload(seq_array_bool, seq_array, scale: int, debug=False, mask=None):
+def generate_whitenoise_sequence(seq_array_bool, seq_array, scale: int, debug=False, mask=None, **kwargs):
     """ Generates a sequence for upload to DMD.
 
     :param seq_array_bool: boolean ndarray to write the random bits, dimensions (N_pix, H_dmd/scale, W_dmd/scale)
@@ -82,15 +57,7 @@ def generate_upload(seq_array_bool, seq_array, scale: int, debug=False, mask=Non
     seq_array[:] *= mask  # mask is 1 in areas we want to stimulate and 0 otherwise. This is faster than alternatives.
 
 
-def gen_refresh(freshness, current):
-    refresh = []  # want to refresh lowest numbers first.
-    for k, v in freshness.items():
-        if not v and k != current:
-            refresh.append(k)
-    return [c_long(x) for x in refresh]
-
-
 if __name__ == '__main__':
     pth = r"D:\tester.h5"
     mskfile = r"D:\patters\mouse_11102\mask_right_bulb.npy"
-    main(1*10**6, pth, generate_upload, file_overwrite=True, seq_debug=False, picture_time=10*1000, mask_filepath=mskfile)
+    main(1 * 10 ** 6, pth, generate_whitenoise_sequence, file_overwrite=True, seq_debug=False, picture_time=10 * 1000, mask_filepath=mskfile)
