@@ -193,7 +193,6 @@ def presenter(
 
 def main(total_presentations, save_filepath, sequence_generator, mask_filepath=None, picture_time=1000 * 10,
          image_scale=4, file_overwrite=False, seq_debug=False):
-
     if mask_filepath:
         mask = np.load(mask_filepath)  # the mask is true in the area we want to illuminate.
     else:
@@ -207,16 +206,19 @@ def main(total_presentations, save_filepath, sequence_generator, mask_filepath=N
     print(patternfile_uuid)
     ephys_comms.send_message('Pattern file saved at: {}.'.format(fullpath))
     ephys_comms.send_message('Pattern file uuid: {}.'.format(patternfile_uuid))
-    print('hello')
     setup_record(save_filepath, uuid=patternfile_uuid)
     presentations_per = 60000  # 1 minutes of recording @ 100 Hz framerate.
     n_runs = int(np.ceil(total_presentations / presentations_per))
     presentation_run_counter = AlphaCounter()
-    for i in range(n_runs):
-        run_id = presentation_run_counter.next()
-        print("Starting presentation run {} of {} ({}).".format(i+1, n_runs, run_id))
-        ephys_comms.send_message('Starting presentation {}'.format(run_id))
-        presenter(presentations_per, save_filepath, run_id, sequence_generator, picture_time=picture_time,
-                  image_scale=image_scale, seq_debug=seq_debug, mask=mask)
-    print('waiting for saver to shutdown...')
-    saver.shutdown()
+    try:
+        for i in range(n_runs):
+            run_id = presentation_run_counter.next()
+            print("Starting presentation run {} of {} ({}).".format(i+1, n_runs, run_id))
+            ephys_comms.send_message('Starting presentation {}'.format(run_id))
+            presenter(presentations_per, save_filepath, run_id, sequence_generator, picture_time=picture_time,
+                      image_scale=image_scale, seq_debug=seq_debug, mask=mask)
+    except KeyboardInterrupt:
+        print('Keyboard interrupt...')
+    finally:
+        print('waiting for saver to shutdown...')
+        saver.shutdown()
