@@ -11,9 +11,15 @@ import warnings
 import time
 import uuid
 import numba as nb
-from PyQt5.QtWidgets import *
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('savefile', help='path to save sequence data HDF5 (.h5) file')
+parser.add_argument('maskfile', help='path to mask file (.npy) file')
+parser.add_argument('--pic_time', type=int, default=10000, help='time to display each frame in us')
+parser.add_argument('--overwrite', action='store_true', help='overwrite datafile?')
+parser.add_argument('--nframes', type=int, default=1000000, help='total number of frames to present before stopping')
+parser.add_argument('--scale', type=int, default=4, help='scale factor for pixels. NxN physical pixels are treated as a single logical pixel')
 
 warnings.filterwarnings('ignore', category=tb.NaturalNameWarning)
 
@@ -243,8 +249,8 @@ def presenter(
         pbar.update(pix_per_seq)  # todo: this is a hack...
 
 
-def main(total_presentations, save_filepath, sequence_generator, mask_filepath=None, picture_time=1000 * 10,
-         image_scale=4, file_overwrite=False, seq_debug=False, **kwargs):
+def run_presentations(total_presentations, save_filepath, sequence_generator, mask_filepath=None, picture_time=1000 * 10,
+                      image_scale=4, file_overwrite=False, seq_debug=False, **kwargs):
     if mask_filepath:
         mask = np.load(mask_filepath)  # the mask is true in the area we want to illuminate.
     else:
@@ -277,5 +283,6 @@ def main(total_presentations, save_filepath, sequence_generator, mask_filepath=N
     finally:
         print('waiting for saver to shutdown...')
         saver.shutdown()
+
 
 

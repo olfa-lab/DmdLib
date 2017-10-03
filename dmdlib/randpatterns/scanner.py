@@ -1,5 +1,5 @@
 from dmdlib.randpatterns.shared import *
-from dmdlib.randpatterns.sparsenoise import *
+# from dmdlib.randpatterns.sparsenoise import *
 
 import numpy as np
 
@@ -38,7 +38,7 @@ def generate_scanner_seqs(seq_array_bool, seq_array, scale: int, debug=False, ma
         picks = np.random.choice(unmasked_idxs_flat, npixels, replace=False)
         frame = seq_array_bool[i, :, :]
         frame.ravel()[picks] = True
-    print(seq_array_bool.sum())
+    # print(seq_array_bool.sum())
     # n, h_full, w_full = seq_array.shape
     # assert n == n_frames
     # assert h_full // scale == h
@@ -46,6 +46,18 @@ def generate_scanner_seqs(seq_array_bool, seq_array, scale: int, debug=False, ma
     zoomer(seq_array_bool, scale, seq_array)
     seq_array[:] *= mask  # mask is 1 in areas we want to stimulate and 0 otherwise. This is faster than alternatives.
     return
+
+
+def main():
+    parser.description = 'Single spot stimulation generator.'
+    parser.add_argument('--gapframes', type=int, default=0,
+                        help='number of blank frames between each spot presentation')
+    parser.add_argument('--npixels', type=int, default=1, help='number of pixels to display in each presentation frame')
+    args = parser.parse_args()
+    run_presentations(args.nframes, args.savefile, generate_scanner_seqs, file_overwrite=args.overwrite, seq_debug=False,
+                      picture_time=args.pic_time, mask_filepath=args.maskfile, image_scale=args.scale, npixels=args.npixels,
+                      gap_frames=args.gapframes)
+
 
 
 if __name__ == '__main__':
@@ -56,5 +68,5 @@ if __name__ == '__main__':
     # mskfile = os.path.join(d, 'mask.npy')
     mskfile = r"D:\patters\mouse_11113\sess_001\mask.npy"
 
-    main(.7 * 10 ** 6, pth, generate_scanner_seqs, file_overwrite=False, seq_debug=False, picture_time=10 * 1000,
-         mask_filepath=mskfile, npixels=1, gap_frames=50)
+    run_presentations(.7 * 10 ** 6, pth, generate_scanner_seqs, file_overwrite=False, seq_debug=False, picture_time=10 * 1000,
+                      mask_filepath=mskfile, npixels=1, gap_frames=50)

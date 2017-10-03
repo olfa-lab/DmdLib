@@ -1,6 +1,6 @@
 import numba as nb
 import random
-from dmdlib.randpatterns.shared import main, zoomer
+from dmdlib.randpatterns.shared import run_presentations, zoomer, parser
 from dmdlib.randpatterns import test_imgen
 
 
@@ -55,13 +55,21 @@ def generate_whitenoise_sequence(seq_array_bool, seq_array, scale: int, debug=Fa
     # print(seq_array.mean())
     seq_array[:] *= mask  # mask is 1 in areas we want to stimulate and 0 otherwise. This is faster than alternatives.
 
+def main():
+    parser.description = 'Whitenoise (50%) stimulus generator.'
+    parser.add_argument('--debug', action='store_true', help='display sequential numbers on DMD to debug sequence and saving')
+    args = parser.parse_args()
+    run_presentations(args.nframes, args.savefile, generate_whitenoise_sequence, file_overwrite=args.overwrite,
+                      seq_debug=args.debug, picture_time=args.pic_time, mask_filepath=args.maskfile, image_scale=args.scale)
+
+
 
 if __name__ == '__main__':
     pth = r"D:\patters\test22.h5"
     mskfile = r"D:\patters\mouse_11103\sess_001\mask.npy"
-    main(1 * 10 ** 6, pth,
-         generate_whitenoise_sequence,
-         file_overwrite=False,
-         picture_time=10 * 1000,
-         mask_filepath=mskfile,
-         image_scale=8)
+    run_presentations(1 * 10 ** 6, pth,
+                      generate_whitenoise_sequence,
+                      file_overwrite=False,
+                      picture_time=10 * 1000,
+                      mask_filepath=mskfile,
+                      image_scale=8)

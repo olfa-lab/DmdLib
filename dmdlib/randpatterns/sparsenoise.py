@@ -1,6 +1,6 @@
-import numba as nb
+# import numba as nb
 import numpy as np
-from dmdlib.randpatterns.shared import main, zoomer, find_unmasked_px
+from dmdlib.randpatterns.shared import run_presentations, zoomer, find_unmasked_px, parser
 import os
 if os.name == 'nt':
     appdataroot = os.environ['APPDATA']
@@ -52,6 +52,22 @@ def generate_sparsenoise_sequences(seq_array_bool, seq_array, scale: int, debug=
     seq_array[:] *= mask  # mask is 1 in areas we want to stimulate and 0 otherwise. This is faster than alternatives.
 
 
+def main():
+    parser.description = 'Sparsenoise stimulus generator.'
+    parser.add_argument('fraction_on', type=float,
+                        help='fraction of pixels on per presentation frame (between 0 and 1)')
+    args = parser.parse_args()
+    frac = args.fraction_on
+    if frac > 1. or frac < 0.:
+        errst = 'Fraction argument must be between 0 and 1.'
+        raise ValueError(errst)
+    else:
+        run_presentations(args.nframes, args.savefile, generate_sparsenoise_sequences, file_overwrite=args.overwrite, seq_debug=False,
+                          image_scale=args.scale, picture_time=args.pic_time, mask_filepath=args.maskfile, random_threshold=frac)
+
+
+
+
 if __name__ == '__main__':
     import os
     d = r"D:"
@@ -59,8 +75,8 @@ if __name__ == '__main__':
     # mskfile = os.path.join(d, 'mask.npy')
     mskfile = r"D:\patters\mouse_11113\sess_001\mask.npy"
     if os.path.exists(d) and os.path.exists(mskfile) and not os.path.exists(pth):
-        main(.7 * 10 ** 6, pth, generate_sparsenoise_sequences, file_overwrite=False, seq_debug=False, picture_time=10 * 1000,
-             mask_filepath=mskfile, random_threshold=.005)
+        run_presentations(.7 * 10 ** 6, pth, generate_sparsenoise_sequences, file_overwrite=False, seq_debug=False, picture_time=10 * 1000,
+                          mask_filepath=mskfile, random_threshold=.005)
     elif not os.path.exists(mskfile):
         raise FileNotFoundError('Mask file not found ({})'.format(mskfile))
     elif os.path.exists(pth):

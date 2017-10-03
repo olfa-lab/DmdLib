@@ -26,7 +26,7 @@ class DMD(object):
     returnpointer = c_long()  # throwaway C pointer that is passed into functions and stores the return message
     alp_id = c_ulong()  # handle
 
-    def __init__(self, verbose=True):
+    def __init__(self, verbose=False):
         self.connected = False  # is the device connected?
         self.temps = {'DDC': 0, 'APPS': 0, 'PCB': 0}  # temperatures in deg C
         self.seq_handles = []
@@ -389,7 +389,7 @@ class DMD(object):
 
         if mode in alpmode:
             returnvalue = self.AlpProjControl(ALP_PROJ_MODE, alpmode[mode])
-            print('set PROJ_MODE: ' + mode + ' ' + str(returnvalue))
+            # print('set PROJ_MODE: ' + mode + ' ' + str(returnvalue))
 
             if mode == 'TTL_seqonset':
                 # sequence init upon TTL

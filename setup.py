@@ -10,6 +10,13 @@ setup(
     description=("Control your DMDs."),
     license="MIT",
     keywords="DMD, Vialux, Mightex",
+    entry_points={
+        'gui_scripts': ['maskmaker=dmdlib.mask_maker.main:main'],
+        'console_scripts': ['sparsenoise=dmdlib.randpatterns.sparsenoise:main',
+                            'scanner=dmdlib.randpatterns.scanner:main',
+                            'whitenoise=dmdlib.randpatterns.whitenoise:main']
+
+    }
 )
 
 if os.name == 'nt':
