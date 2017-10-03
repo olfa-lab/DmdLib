@@ -1,8 +1,7 @@
-import test_imgen
 import numba as nb
 import random
-from shared import main, zoomer
-
+from dmdlib.randpatterns.shared import main, zoomer
+from dmdlib.randpatterns import test_imgen
 
 
 
@@ -58,6 +57,11 @@ def generate_whitenoise_sequence(seq_array_bool, seq_array, scale: int, debug=Fa
 
 
 if __name__ == '__main__':
-    pth = r"D:\tester.h5"
-    mskfile = r"D:\patters\mouse_11102\mask_right_bulb.npy"
-    main(1 * 10 ** 6, pth, generate_whitenoise_sequence, file_overwrite=True, seq_debug=False, picture_time=10 * 1000, mask_filepath=mskfile)
+    pth = r"D:\patters\test22.h5"
+    mskfile = r"D:\patters\mouse_11103\sess_001\mask.npy"
+    main(1 * 10 ** 6, pth,
+         generate_whitenoise_sequence,
+         file_overwrite=False,
+         picture_time=10 * 1000,
+         mask_filepath=mskfile,
+         image_scale=8)

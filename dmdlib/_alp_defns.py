@@ -3,24 +3,7 @@ from ctypes import Structure, c_long, c_ulong
 '''copied from alp.h'''
 # stuff excluded: LED control, code for backward compatibility, fn definitionss
 
-
-
-'''
-/***********************************************************************************/
-/**                                                                               **/
-/**   Project:      alp   (ALP DLL)                                               **/
-/**   Filename:     alp.h : Header File                                           **/
-/**                                                                               **/
-/***********************************************************************************/
-/**                                                                               **/
-/**   (c) 2004-2013 ViALUX GmbH. All rights reserved.                             **/
-/**                                                                               **/
-/***********************************************************************************/
-/**                                                                               **/
-/**   Version:        12                                                          **/
-/**                                                                               **/
-/***********************************************************************************/
-'''
+# for ALP v 12 api. Copied from alp.h
 
 ALP_DEFAULT = 0
 

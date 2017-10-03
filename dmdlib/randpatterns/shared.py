@@ -5,12 +5,15 @@ import tables as tb
 import numpy as np
 from tqdm import tqdm, trange
 from ctypes import *
-import ephys_comms
+from dmdlib.randpatterns import ephys_comms
 from string import ascii_lowercase
 import warnings
 import time
 import uuid
 import numba as nb
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 
 warnings.filterwarnings('ignore', category=tb.NaturalNameWarning)
 
@@ -47,13 +50,37 @@ def zoomer(arr_in, scale, arr_out):
                     arr_out[i, j_st:j_nd, k_st:k_nd] = 0
 
 
-def setup_record(filename, uuid=''):
+@nb.jit(parallel=True)
+def find_unmasked_px(mask, scale):
+    """
+    Find the (scaled) pixels that are not masked.
+    :param mask:
+    :param scale:
+    :return:
+    """
+    h, w = mask.shape
+    h_scaled = h // scale
+    w_scaled = w // scale
+    valid_array = np.zeros((h_scaled, w_scaled), dtype=bool)
+    for y in nb.prange(h_scaled):
+        st_y = y * scale
+        nd_y = st_y + scale
+        for x in range(w_scaled):
+            st_x = x * scale
+            nd_x = st_x + scale
+            if np.any(mask[st_y:nd_y, st_x:nd_x]):
+                valid_array[y, x] = True
+    return valid_array
+
+
+def setup_record(filename, uuid_str=''):
     """
     Creates seq recording file. Add to record using save_sequence method below.
 
     :param filename: name of file to create.
+    :param uuid_str: uuid to save with the file.
     """
-    with tb.open_file(filename, 'w', title="Rand_pat_file_v1:{}".format(uuid)) as f:
+    with tb.open_file(filename, 'w', title="Rand_pat_file_v1:{}".format(uuid_str)) as f:
         f.create_group('/', 'patterns', tb.Filters(5))
     return
 
@@ -229,9 +256,12 @@ def main(total_presentations, save_filepath, sequence_generator, mask_filepath=N
     print(fullpath)
     patternfile_uuid = uuid.uuid4()
     print(patternfile_uuid)
+    print('Connecting ephys...', end='')
     ephys_comms.send_message('Pattern file saved at: {}.'.format(fullpath))
+    # print('1', end='')
     ephys_comms.send_message('Pattern file uuid: {}.'.format(patternfile_uuid))
-    setup_record(save_filepath, uuid=patternfile_uuid)
+    print('done.')
+    setup_record(save_filepath, uuid_str=patternfile_uuid)
     presentations_per = 60000  # 1 minutes of recording @ 100 Hz framerate.
     n_runs = int(np.ceil(total_presentations / presentations_per))
     presentation_run_counter = AlphaCounter()
@@ -247,3 +277,5 @@ def main(total_presentations, save_filepath, sequence_generator, mask_filepath=N
     finally:
         print('waiting for saver to shutdown...')
         saver.shutdown()
+
+

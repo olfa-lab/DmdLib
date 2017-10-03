@@ -17,6 +17,34 @@ TRANSFORM_CONFIG_PATH_KEY = 'cam_to_dmd'
 IMAGE_CONFIG_PATH_KEY = 'img_path'
 
 
+class MyMainWindow(QMainWindow):
+
+    def closeEvent(self, event: QCloseEvent):
+        print('close')
+        if not self.centralWidget()._saved:
+            save_dialog = QMessageBox(self)
+
+            if self.centralWidget()._mask_ready:
+                save_dialog.setStandardButtons(QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel)
+            else:
+                save_dialog.setStandardButtons(QMessageBox.Close | QMessageBox.Cancel)
+            save_dialog.setWindowTitle('Exit?')
+            save_dialog.setText('A mask has not been saved.')
+            save_dialog.setInformativeText('Do you really want to exit?')
+            save_dialog.setDefaultButton(QMessageBox.Save)
+            save_dialog.setEscapeButton(QMessageBox.Cancel)
+            result = save_dialog.exec()
+            if result == QMessageBox.Save:
+                self.centralWidget().save_mask()
+                event.accept()
+            elif result == QMessageBox.Cancel:
+                event.ignore()
+            elif result == QMessageBox.Discard or result == QMessageBox.Close:
+                event.accept()
+        else:
+            event.accept()
+
+
 class MainWidget(QWidget):
     transformLoaded = pyqtSignal(bool)
     imageLoaded = pyqtSignal(QImage)
@@ -63,6 +91,7 @@ class MainWidget(QWidget):
         except:
             pass
         self._saved = False
+        self._mask_ready = False
 
     @pyqtSlot()
     def load_transform(self, filepath=None):
@@ -103,9 +132,11 @@ class MainWidget(QWidget):
             dmd_shape = self.dmd.w, self.dmd.h  # this is opposite of what you would expect because cv2 returns transposed matrix.
             self.dmd_mask = cv2.warpAffine(cam_array.astype('uint8'), self.cam_to_dmd_transform, dmd_shape) # return shape (h, w)
             self.maskRegistered.emit(True)
+            self._mask_ready = True
         except:
             self.maskRegistered.emit(False)
             self.dmd_mask = None
+            self._mask_ready = False
 
     @pyqtSlot()
     def disp_mask(self):
@@ -197,7 +228,14 @@ class MainWidget(QWidget):
             self._cwd, _ = os.path.split(filepath)
         # print(self.dmd_mask.shape)
         if filepath is not None:
+            if not filepath.endswith('.npy'):
+                if not filepath.endswith(os.path.extsep):
+                    filepath = filepath + os.path.extsep
+                filepath = filepath + 'npy'
+            self.config['LAST_MASK_SAVED'] = filepath
             np.save(filepath, self.dmd_mask.astype('bool'))
+            self._saved = True
+
 
 
 class ControlWidget(QWidget):
@@ -385,7 +423,7 @@ class ImageWidget(QGraphicsView):
 
 def main():
     app = QApplication(sys.argv)
-    w = QMainWindow()
+    w = MyMainWindow()
     w.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
     mainwidget = MainWidget()
     w.setCentralWidget(mainwidget)

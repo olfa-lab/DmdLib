@@ -1,33 +1,10 @@
-from shared import main, presenter
-import test_imgen
-from ctypes import *
 import numba as nb
 import numpy as np
-import random
-from shared import main, zoomer
-
-
-@nb.jit(parallel=True)
-def find_unmasked_px(mask, scale):
-    """
-    Find the (scaled) pixels that are not masked.
-    :param mask:
-    :param scale:
-    :return:
-    """
-    h, w = mask.shape
-    h_scaled = h // scale
-    w_scaled = w // scale
-    valid_array = np.zeros((h_scaled, w_scaled), dtype=bool)
-    for y in nb.prange(h_scaled):
-        st_y = y * scale
-        nd_y = st_y + scale
-        for x in range(w_scaled):
-            st_x = x * scale
-            nd_x = st_x + scale
-            if np.any(mask[st_y:nd_y, st_x:nd_x]):
-                valid_array[y, x] = True
-    return valid_array
+from dmdlib.randpatterns.shared import main, zoomer, find_unmasked_px
+import os
+if os.name == 'nt':
+    appdataroot = os.environ['APPDATA']
+    appdatapath = os.path.join(appdataroot, 'dmdlib')
 
 
 # @nb.jit  # numba 0.35.0 doesn't help here at all with fancy indexing
@@ -44,7 +21,7 @@ def reshape(random_unshaped_array, valid_array, seq_array_bool):
     n_valid = valid_array.sum()
     st = 0
     nd = n_valid
-    for i in nb.prange(n_frames):
+    for i in range(n_frames):
         fr = seq_array_bool[i]
         fr[valid_array] = random_unshaped_array[st:nd]
         st += n_valid
@@ -62,6 +39,7 @@ def generate_sparsenoise_sequences(seq_array_bool, seq_array, scale: int, debug=
     """
     if random_threshold is None:
         raise ValueError('random_threshold kwarg is not set.')
+
     unmasked = find_unmasked_px(mask, scale)
     n_nmasked = unmasked.sum()
     n_frames, h, w = seq_array_bool.shape
@@ -75,7 +53,15 @@ def generate_sparsenoise_sequences(seq_array_bool, seq_array, scale: int, debug=
 
 
 if __name__ == '__main__':
-    pth = r"D:\tester.h5"
-    mskfile = r"D:\patters\mouse_11102\mask_right_bulb.npy"
-    main(1 * 10 ** 6, pth, generate_sparsenoise_sequences, file_overwrite=True, seq_debug=False, picture_time=10 * 1000,
-         mask_filepath=mskfile, random_threshold=.1)
+    import os
+    d = r"D:"
+    pth = os.path.join(d, 'test.h5')
+    # mskfile = os.path.join(d, 'mask.npy')
+    mskfile = r"D:\patters\mouse_11113\sess_001\mask.npy"
+    if os.path.exists(d) and os.path.exists(mskfile) and not os.path.exists(pth):
+        main(.7 * 10 ** 6, pth, generate_sparsenoise_sequences, file_overwrite=False, seq_debug=False, picture_time=10 * 1000,
+             mask_filepath=mskfile, random_threshold=.005)
+    elif not os.path.exists(mskfile):
+        raise FileNotFoundError('Mask file not found ({})'.format(mskfile))
+    elif os.path.exists(pth):
+        raise FileExistsError("Patterns file already exists {}.".format(pth))
