@@ -50,7 +50,7 @@ def generate_scanner_seqs(seq_array_bool, seq_array, scale: int, debug=False, ma
 
 def main():
     parser.description = 'Single spot stimulation generator.'
-    parser.add_argument('--gapframes', type=int, default=0,
+    parser.add_argument('-g', '--gapframes', type=int, default=0,
                         help='number of blank frames between each spot presentation')
     parser.add_argument('--npixels', type=int, default=1, help='number of pixels to display in each presentation frame')
     args = parser.parse_args()

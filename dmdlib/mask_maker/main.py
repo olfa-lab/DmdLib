@@ -96,12 +96,6 @@ class MainWidget(QWidget):
     @pyqtSlot()
     def load_transform(self, filepath=None):
         startpath = None
-        try:
-            if TRANSFORM_CONFIG_PATH_KEY in self.config.keys() and os.path.exists(self.config[TRANSFORM_CONFIG_PATH_KEY]):
-                filepath = self.config[TRANSFORM_CONFIG_PATH_KEY]
-
-        except:
-            pass
         self.transformLoaded.emit(False)
         d = None
         if filepath is None:
