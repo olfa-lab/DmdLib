@@ -29,8 +29,6 @@ dmd.seq_queue_mode()
 dmd.proj_mode('master')
 rv = c_long()
 
-saver = concurrent.futures.ThreadPoolExecutor(1)
-
 
 @nb.jit(parallel=True, nopython=True)
 def zoomer(arr_in, scale, arr_out):
@@ -157,7 +155,8 @@ class AlphaCounter():
 
 
 def presenter(
-        total_presentations: int, save_path: str, save_groupname: str, sequence_generator: staticmethod, nseqs=3, pix_per_seq=250, nbits=1,
+        total_presentations: int, save_path: str, save_groupname: str, sequence_generator: staticmethod,
+        saver: concurrent.futures.ThreadPoolExecutor, nseqs=3, pix_per_seq=250, nbits=1,
         picture_time=1000 * 10, image_scale=4, seq_debug=False, mask=None, **kwargs):
     """
 
@@ -165,6 +164,7 @@ def presenter(
     :param save_path: path to savefile. This file should exist!!
     :param save_groupname: hdf5 groupname for saving the patterns.
     :param sequence_generator: function for generating images to upload.
+    :param saver: threadpoolexecutor instance.
     :param nseqs: sequences to upload.
     :param pix_per_seq: pix per sequence.
     :param nbits: bitdepth of uploaded file
@@ -175,7 +175,6 @@ def presenter(
     if dmd.w % image_scale or dmd.w % image_scale:
         errst = "image_scale parameter must evenly divide into DMD's physical width and height ({}x{})".format(dmd.w, dmd.h)
         raise ValueError(errst)
-    # fut = saver.submit(setup_record, save_path)
     if total_presentations < nseqs * pix_per_seq:
         nseqs = np.ceil(total_presentations / pix_per_seq)
     # INITIALIZE DMD
@@ -268,24 +267,22 @@ def run_presentations(total_presentations, save_filepath, sequence_generator, ma
     # print('1', end='')
     ephys_comms.send_message('Pattern file uuid: {}.'.format(patternfile_uuid))
     print('done.')
+
     setup_record(save_filepath, uuid_str=patternfile_uuid, mask_array=mask)
     presentations_per = min([60000, total_presentations])  # 60000 is 10 minutes of recording @ 100 Hz framerate.
     # if total presentation is less than 60000, then we'll adjust down the presentations per.
     n_runs = int(np.ceil(total_presentations / presentations_per))
     assert n_runs > 0
     presentation_run_counter = AlphaCounter()
-    try:
+    with concurrent.futures.ThreadPoolExecutor(1) as saver:
+        # Using saver in context allows for a graceful shutdown (all threads join) when Ctrl-C is called. This is better
+        # than catching Ctrl-C with try, because it propagates the exception to the top loop if necessary.
         for i in range(n_runs):
             run_id = presentation_run_counter.next()
             print("Starting presentation run {} of {} ({}).".format(i+1, n_runs, run_id))
             ephys_comms.send_message('Starting presentation {}'.format(run_id))
-            presenter(presentations_per, save_filepath, run_id, sequence_generator, picture_time=picture_time,
+            presenter(presentations_per, save_filepath, run_id, sequence_generator, saver, picture_time=picture_time,
                       image_scale=image_scale, seq_debug=seq_debug, mask=mask, **kwargs)
-    except KeyboardInterrupt:
-        print('Keyboard interrupt...')
-    finally:
-        print('waiting for saver to shutdown...')
-        saver.shutdown()
 
 
 
