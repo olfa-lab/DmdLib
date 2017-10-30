@@ -42,20 +42,20 @@ def make_text_fast(text, array, margins=(10, 10, 150, 150), width=1028, height=6
     mask_array.shape = mask.size[1], mask.size[0]
     top, bottom, left, right = margins
     _array_maker(array, mask_array, top, bottom, left, right, width, height)
-    return array
+    return
 
 @numba.jit(nopython=True, parallel=True)
 def _array_maker(arrayout, arrayin, top, bottom, left, right, width, height):
     W_margins = width - right - left
     H_margins = height - top - bottom
     mH, mW = arrayin.shape
-    W_scale = np.floor(W_margins / mW)
-    H_scale = np.floor(H_margins / mH)
+    W_scale = int(np.ceil(W_margins / mW))
+    H_scale = int(np.ceil(H_margins / mH))
 
     for x in range(W_margins):
-        x_mask = int(x / W_scale)
+        x_mask = x // W_scale
         for y in range(H_margins):
-            y_mask = int(y / H_scale)
+            y_mask = y // H_scale
             maskv = arrayin[y_mask, x_mask]
             arrayout[y+top, x+left] = maskv
     return

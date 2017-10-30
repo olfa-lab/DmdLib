@@ -16,8 +16,8 @@ def number_sequence_generator(startnum, seq_array):
     """
     n, h, w = seq_array.shape
     for i in range(n):
-        img = test_imgen.make_text_fast("{:06n}".format(startnum+i), seq_array[i, :, :], width=w, height=h, margins =(200,200,200,200))
-        seq_array[i, :, :] = img
+        test_imgen.make_text_fast("{:06n}".format(startnum+i), seq_array[i, :, :], width=w, height=h,
+                                        margins =(200,200,200,200))
     return
 
 
@@ -51,6 +51,7 @@ def generate_whitenoise_sequence(seq_array_bool, seq_array, scale: int, debug=Fa
         global _DEBUG_COUNTER  # a bit messy, but I don't want to spend to much time on the debug cleanliness.
         # _DEBUG_COUNTER += seq_array_bool.shape[0]
         number_sequence_generator(_DEBUG_COUNTER, seq_array)
+        seq_array *= 255
         _DEBUG_COUNTER += seq_array_bool.shape[0]
     # print(seq_array.mean())
     seq_array[:] *= mask  # mask is 1 in areas we want to stimulate and 0 otherwise. This is faster than alternatives.
