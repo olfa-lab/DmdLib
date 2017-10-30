@@ -6,7 +6,7 @@ setup(
     name="dmdlib",
     version="0.0.1",
     packages=['dmdlib'],
-    author="Edmund Chong",
+    author="Edmund Chong & Chris Wilson",
     description=("Control your DMDs."),
     license="MIT",
     keywords="DMD, Vialux, Mightex",
@@ -14,7 +14,8 @@ setup(
         'gui_scripts': ['maskmaker=dmdlib.mask_maker.main:main'],
         'console_scripts': ['sparsenoise=dmdlib.randpatterns.sparsenoise:main',
                             'scanner=dmdlib.randpatterns.scanner:main',
-                            'whitenoise=dmdlib.randpatterns.whitenoise:main']
+                            'whitenoise=dmdlib.randpatterns.whitenoise:main',
+                            'multisparse=dmdlib.randpatterns.multisparse:main']
 
     }
 )

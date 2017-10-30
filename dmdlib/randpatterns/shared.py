@@ -18,7 +18,7 @@ parser.add_argument('savefile', help='path to save sequence data HDF5 (.h5) file
 parser.add_argument('maskfile', help='path to mask file (.npy) file')
 parser.add_argument('--pic_time', type=int, default=10000, help='time to display each frame in us')
 parser.add_argument('--overwrite', action='store_true', help='overwrite datafile?')
-parser.add_argument('--nframes', type=int, default=1000000, help='total number of frames to present before stopping')
+parser.add_argument('--nframes', type=int, default=750000, help='total number of frames to present before stopping')
 parser.add_argument('--scale', type=int, default=4, help='scale factor for pixels. NxN physical pixels are treated as a single logical pixel')
 
 warnings.filterwarnings('ignore', category=tb.NaturalNameWarning)
@@ -269,8 +269,10 @@ def run_presentations(total_presentations, save_filepath, sequence_generator, ma
     ephys_comms.send_message('Pattern file uuid: {}.'.format(patternfile_uuid))
     print('done.')
     setup_record(save_filepath, uuid_str=patternfile_uuid, mask_array=mask)
-    presentations_per = 60000  # 1 minutes of recording @ 100 Hz framerate.
+    presentations_per = min([60000, total_presentations])  # 60000 is 10 minutes of recording @ 100 Hz framerate.
+    # if total presentation is less than 60000, then we'll adjust down the presentations per.
     n_runs = int(np.ceil(total_presentations / presentations_per))
+    assert n_runs > 0
     presentation_run_counter = AlphaCounter()
     try:
         for i in range(n_runs):
