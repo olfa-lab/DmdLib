@@ -79,7 +79,7 @@ def find_unmasked_px(mask, scale):
     return valid_array
 
 
-def setup_record(filename, uuid_str=''):
+def setup_record(filename, uuid_str='', mask_array=None):
     """
     Creates seq recording file. Add to record using save_sequence method below.
 
@@ -88,8 +88,9 @@ def setup_record(filename, uuid_str=''):
     """
     with tb.open_file(filename, 'w', title="Rand_pat_file_v1:{}".format(uuid_str)) as f:
         f.create_group('/', 'patterns', tb.Filters(5))
+        if mask_array is not None:
+            f.create_array('/', 'pixel_mask', obj=mask_array)
     return
-
 
 def save_sequence(filename, save_groupname, leaf_id, data, metadata={}):
     """
@@ -267,7 +268,7 @@ def run_presentations(total_presentations, save_filepath, sequence_generator, ma
     # print('1', end='')
     ephys_comms.send_message('Pattern file uuid: {}.'.format(patternfile_uuid))
     print('done.')
-    setup_record(save_filepath, uuid_str=patternfile_uuid)
+    setup_record(save_filepath, uuid_str=patternfile_uuid, mask_array=mask)
     presentations_per = 60000  # 1 minutes of recording @ 100 Hz framerate.
     n_runs = int(np.ceil(total_presentations / presentations_per))
     presentation_run_counter = AlphaCounter()
