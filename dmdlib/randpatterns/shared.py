@@ -154,6 +154,43 @@ class AlphaCounter():
         return "{}{}{}".format(ascii_lowercase[p3], ascii_lowercase[p2], ascii_lowercase[p1])
 
 
+def make_seq_pulse_lens(n_vals, max_val, min_val=100, min_diff=100):
+    """
+    Makes a "random" list of integers between min_time and max_time and ensures that each value spaced at least min_diff
+    away from all the other values.
+
+    :param n_vals: number of values to return
+    :param max_val: maximum value that any number in the list can have
+    :param min_val: minimum value that any number in the list can have
+    :param min_diff: all values must be at least this far apart from each other.
+    :return: list of pulse lengths.
+    """
+
+    pulse_lens = []
+    for i in range(n_vals):
+        good = False
+        while not good:
+            val = np.random.randint(min_val, max_val)
+            good = _distance_checker(val, pulse_lens, min_diff)
+        pulse_lens.append(val)
+    return pulse_lens
+
+
+def _distance_checker(proposed, existing, min_dist=100):
+    """
+    Checks to make sure that a proposed number is at least min_dist from all values in a list.
+
+    :param vals: list of values
+    :param proposed: value to check
+    :param min_dist: minimum distance the proposed value needs to be from all values in the list.
+    :return: bool
+    """
+    for v in existing:
+        if np.abs(v - proposed) < min_dist:
+            return False
+    return True
+
+
 def presenter(
         total_presentations: int, save_path: str, save_groupname: str, sequence_generator: staticmethod,
         saver: concurrent.futures.ThreadPoolExecutor, nseqs=3, pix_per_seq=250, nbits=1,
@@ -193,11 +230,14 @@ def presenter(
     projecting = c_long()
     frames_presented = 0  # count of frames presented for status viewer.
     seq_counter = 0  # running count of the number of sequences that have been uploaded - this defines the name of the save leaf.
+
+    seq_lens = make_seq_pulse_lens(nseqs, picture_time - 500)
+
     for i in range(nseqs):
         dmd.AlpSeqAlloc(nbits_c, pix_per_seq_c, byref(sequence_ids[i]))
         seq_id = sequence_ids[i]
         sequence_freshness[seq_id.value] = False
-        sync_pulse_len = np.random.randint(500, picture_time-500)
+        sync_pulse_len = seq_lens[i]
         sequence_pulse_lengths[seq_id.value] = sync_pulse_len
         dmd.AlpSeqTiming(seq_id, picturetime=picture_time_c, syncpulsewidth=c_long(sync_pulse_len))
         if nbits == 1:
