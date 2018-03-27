@@ -498,6 +498,8 @@ class AlpFrameSequence:
         self.syncdelay = -1
         self.syncpulsewidth = -1
         self.triggerindelay = -1
+        self.array = self.gen_array()
+
 
     def set_timing(self, illuminatetime=c_long(ALP_DEFAULT),
                       picturetime=c_long(ALP_DEFAULT),
@@ -517,7 +519,7 @@ class AlpFrameSequence:
     def gen_array(self):
         return np.zeros((self.picnum, self._parent.h, self._parent.w), dtype='uint8')
 
-    def upload_array(self, pattern: np.ndarray):
+    def upload_array(self, pattern=None):
         """
         Uploads a numpy uint8 array pattern to parent DMD into this sequence space. This handles the sequence
         shape definition based on what was allocated, and it handles conversion from numpy array to a C
@@ -526,8 +528,12 @@ class AlpFrameSequence:
         :param pattern: numpy array of uint8 values to be uploaded.
         """
 
-        assert pattern.dtype == np.uint8
-        patternptr = pattern.ctypes.data_as(POINTER(c_char))
+        if pattern is not None:
+            # assert pattern.dtype == np.uint8
+            # assert pattern.shape == self.array.shape
+            self.array[:, :, :] = pattern[:, :, :]
+
+        patternptr = self.array.ctypes.data_as(POINTER(c_char))
         self._parent._AlpSeqPut(self.seq_id,  c_long(0), c_long(self.picnum), patternptr)
 
     def start_projection(self):
