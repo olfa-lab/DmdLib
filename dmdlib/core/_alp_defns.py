@@ -26,33 +26,33 @@ ALP_NOT_CONFIGURED = 1013  # The onboard FPGA is unconfigured.
 ALP_LOADER_VERSION = 1014  # The function is not supported by this version of the driver file VlxUsbLd.sys.
 ALP_ERROR_POWER_DOWN = 1018  # waking up the DMD from PWR_FLOAT did not work (ALP_DMD_POWER_FLOAT)
 
-# ===== for ALP_DEV_STATE in AlpDevInquire ======
+# ===== for ALP_DEV_STATE in _AlpDevInquire ======
 
 ALP_DEV_BUSY = 1100  # the ALP is displaying a sequence or image data download is active
 ALP_DEV_READY = 1101  # the ALP is ready for further requests
 ALP_DEV_IDLE = 1102  # the ALP is in wait state
 
-# ===== for ALP_PROJ_STATE in AlpProjInquire =====
+# ===== for ALP_PROJ_STATE in _AlpProjInquire =====
 
 ALP_PROJ_ACTIVE = 1200  # ALP projection active
 ALP_PROJ_IDLE = 1201  # no projection active
 
 # =====  parameter =====
 
-# ===== AlpDevInquire =====
+# ===== _AlpDevInquire =====
 
 ALP_DEVICE_NUMBER = 2000  # Serial number of the ALP device
 ALP_VERSION = 2001  # Version number of the ALP device
 ALP_DEV_STATE = 2002  # current ALP status, see above
 ALP_AVAIL_MEMORY = 2003  # ALP on-board sequence memory available for further sequence
-#    allocation (AlpSeqAlloc); number of binary pictures
+#    allocation (_AlpSeqAlloc); number of binary pictures
 
 # ===== Temperatures. Data format: signed long with 1 LSB=1/256 deg C ===== 
 ALP_DDC_FPGA_TEMPERATURE = 2050  # V4100 Rev B: LM95231. External channel: DDC FPGAs Temperature Diode
 ALP_APPS_FPGA_TEMPERATURE = 2051  # V4100 Rev B: LM95231. External channel: Application FPGAs Temperature Diode
 ALP_PCB_TEMPERATURE = 2052  # V4100 Rev B: LM95231. Internal channel. "Board temperature"
 
-# =====   AlpDevControl - ControlTypes & ControlValues =====
+# =====   _AlpDevControl - ControlTypes & ControlValues =====
 ALP_SYNCH_POLARITY = 2004  # Select frame synch output signal polarity
 ALP_TRIGGER_EDGE = 2005  # Select active input trigger edge (slave mode)
 ALP_LEVEL_HIGH = 2006  # Active high synch output
@@ -82,14 +82,14 @@ ALP_DEV_DISPLAY_WIDTH = 2058  # number of mirror columns on the DMD
 ALP_DEV_DMD_MODE = 2064  # query/set DMD PWR_FLOAT mode, valid options: ALP_DEFAULT (normal operation: "wake up DMD"), ALP_DMD_POWER_FLOAT
 ALP_DMD_POWER_FLOAT = 1  # power down, release micro mirrors from deflected state
 
-ALP_PWM_LEVEL = 2063  # PWM pin duty-cycle as percentage: 0..100%; after AlpDevAlloc: 0%
+ALP_PWM_LEVEL = 2063  # PWM pin duty-cycle as percentage: 0..100%; after _AlpDevAlloc: 0%
 
 # ===== AlpDevControlEx =====
 ALP_DEV_DYN_SYNCH_OUT1_GATE = 2023
 ALP_DEV_DYN_SYNCH_OUT2_GATE = 2024
 ALP_DEV_DYN_SYNCH_OUT3_GATE = 2025
 
-# ===== AlpSeqControl - ControlTypes =====
+# ===== _AlpSeqControl - ControlTypes =====
 ALP_SEQ_REPEAT = 2100  # Non-continuous display of a sequence (AlpProjStart) allows
 #    for configuring the number of sequence iterations.
 ALP_SEQ_REPETE = ALP_SEQ_REPEAT  # According to the typo made in primary documentation (ALP API description)
@@ -97,7 +97,7 @@ ALP_FIRSTFRAME = 2101  # First image of this sequence to be displayed.
 ALP_LASTFRAME = 2102  # Last image of this sequence to be displayed.
 
 ALP_BITNUM = 2103  # A sequence can be displayed with reduced bit depth for faster speed.
-ALP_BIN_MODE = 2104  # Binary mode: select from ALP_BIN_NORMAL and ALP_BIN_UNINTERRUPTED (AlpSeqControl)
+ALP_BIN_MODE = 2104  # Binary mode: select from ALP_BIN_NORMAL and ALP_BIN_UNINTERRUPTED (_AlpSeqControl)
 
 ALP_BIN_NORMAL = 2105  # Normal operation with progammable dark phase
 ALP_BIN_UNINTERRUPTED = 2106  # Operation without dark phase
@@ -119,7 +119,7 @@ ALP_DATA_BINARY_BOTTOMUP = 3  # Data is packed binary, bottom row first
 # SXGA+: one pixel row occupies 176 byte of binary data. First byte ignored.
 #        Byte1.Bit7 = top left pixel (TOPDOWN format)
 
-ALP_SEQ_PUT_LOCK = 2119  # ALP_DEFAULT: Lock Sequence Memory in AlpSeqPut;
+ALP_SEQ_PUT_LOCK = 2119  # ALP_DEFAULT: Lock Sequence Memory in _AlpSeqPut;
 # Not ALP_DEFAULT: do not lock, instead allow writing sequence image data even currently displayed
 
 
@@ -149,7 +149,7 @@ ALP_FLUT_OFFSET9 = 2122  # Determine offset of FLUT index; default=0
 
 ALP_SEQ_DMD_LINES = 2125  # Area of Interest: Value = MAKELONG(StartRow, RowCount)
 
-# AlpSeqInquire
+# _AlpSeqInquire
 ALP_BITPLANES = 2200  # Bit depth of the pictures in the sequence
 ALP_PICNUM = 2201  # Number of pictures in the sequence
 ALP_PICTURE_TIME = 2203  # Time between the start of consecutive pictures in the sequence in microseconds,
@@ -174,7 +174,7 @@ ALP_MAX_PICTURE_TIME = 2213  # Maximum value of ALP_PICTURE_TIME
 ALP_ON_TIME = 2214  # Total active projection time
 ALP_OFF_TIME = 2215  # Total inactive projection time
 
-# ===== AlpProjInquire & AlpProjControl ==== & ...Ex - InquireTypes, ControlTypes & Values 
+# ===== _AlpProjInquire & _AlpProjControl ==== & ...Ex - InquireTypes, ControlTypes & Values
 ALP_PROJ_MODE = 2300  # Select from ALP_MASTER and ALP_SLAVE mode
 ALP_MASTER = 2301  # The ALP operation is controlled by internal
 #    timing, a synch signal is sent out for any
@@ -193,7 +193,7 @@ ALP_PROJ_STEP = 2329  # ALP operation should run in ALP_MASTER mode,
 #    If an event is "stored" in edge mode due
 #    to a past edge, then it will be
 #    discarded during
-#    AlpProjControl(ALP_PROJ_STEP).
+#    _AlpProjControl(ALP_PROJ_STEP).
 ALP_PROJ_SYNC = 2303  # Select from ALP_SYNCHRONOUS and ALP_ASYNCHRONOUS mode
 ALP_SYNCHRONOUS = 2304  # The calling program gets control back after completion
 #    of sequence display.
@@ -218,19 +218,19 @@ ALP_PROJ_QUEUE_ID = 2315  # provide the QueueID (ALP_ID) of the most recently en
 ALP_PROJ_QUEUE_MAX_AVAIL = 2316  # total number of waiting positions in the sequence queue
 ALP_PROJ_QUEUE_AVAIL = 2317  # number of available waiting positions in the queue
 # bear in mind that when a sequence runs, it is already dequeued and does not consume a waiting position any more
-ALP_PROJ_PROGRESS = 2318  # (AlpProjInquireEx) inquire detailled progress of the running sequence and the queue
+ALP_PROJ_PROGRESS = 2318  # (_AlpProjInquireEx) inquire detailled progress of the running sequence and the queue
 ALP_PROJ_RESET_QUEUE = 2319  # Remove all enqueued sequences from the queue. The currently running sequence is not affected. ControlValue must be ALP_DEFAULT
 ALP_PROJ_ABORT_SEQUENCE = 2320  # abort the current sequence (ControlValue=ALP_DEFAULT) or a specific sequence (ControlValue=QueueID); abort after last frame of current iteration
 ALP_PROJ_ABORT_FRAME = 2321  # similar, but abort after next frame
 # Only one abort request can be active at a time. If it is requested to
 # abort another sequence before the old request is completed, then
-# AlpProjControl returns ALP_NOT_IDLE. (Please note, that AlpProjHalt
-# and AlpDevHalt work anyway.) If the QueueID points to a sequence
-# behind an indefinitely started one (AlpProjStartCont) then it returns
+# _AlpProjControl returns ALP_NOT_IDLE. (Please note, that _AlpProjHalt
+# and _AlpDevHalt work anyway.) If the QueueID points to a sequence
+# behind an indefinitely started one (_AlpProjStartCont) then it returns
 # ALP_PARM_INVALID in order to prevent dead-locks.
-ALP_PROJ_WAIT_UNTIL = 2323  # When does AlpProjWait complete regarding the last frame? or after picture time of last frame
-ALP_PROJ_WAIT_PIC_TIME = 0  # ALP_DEFAULT: AlpProjWait returns after picture time
-ALP_PROJ_WAIT_ILLU_TIME = 1  # AlpProjWait returns after illuminate time (except binary uninterrupted sequences, because an "illuminate time" is not applicable there)
+ALP_PROJ_WAIT_UNTIL = 2323  # When does _AlpProjWait complete regarding the last frame? or after picture time of last frame
+ALP_PROJ_WAIT_PIC_TIME = 0  # ALP_DEFAULT: _AlpProjWait returns after picture time
+ALP_PROJ_WAIT_ILLU_TIME = 1  # _AlpProjWait returns after illuminate time (except binary uninterrupted sequences, because an "illuminate time" is not applicable there)
 
 class AlpProjProgress(Structure):
 	_fields_ = [
@@ -256,7 +256,7 @@ struct tAlpProjProgress {
 		reported; The API description contains more details on that. */
 	unsigned long nSequenceCounter;		/* number of iterations to be done */
 	unsigned long nSequenceCounterUnderflow;	/* nSequenceCounter can
-		underflow (for indefinitely long Sequences: AlpProjStartCont);
+		underflow (for indefinitely long Sequences: _AlpProjStartCont);
 		nSequenceCounterUnderflow is 0 before, and non-null afterwards */
 	unsigned long nFrameCounter;	/* frames left inside current iteration */
 
@@ -276,6 +276,6 @@ struct tAlpProjProgress {
 ''' #== TODO : HOW TO MAKE UNSIGNED LONG IN PYTHON?
 define ALP_FLAG_QUEUE_IDLE                1UL
 define ALP_FLAG_SEQUENCE_ABORTING        2UL
-define ALP_FLAG_SEQUENCE_INDEFINITE    4UL    /* AlpProjStartCont: this loop runs indefinitely long, until aborted */
+define ALP_FLAG_SEQUENCE_INDEFINITE    4UL    /* _AlpProjStartCont: this loop runs indefinitely long, until aborted */
 define ALP_FLAG_FRAME_FINISHED            8UL    /* illumination of last frame finished, picture time still progressing */
 '''

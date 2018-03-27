@@ -22,7 +22,11 @@ def _api_call(function):
     return api_handler
 
 
-class DMD(object):
+class AlpDmd:
+    """
+    Interface with Vialux ALP DMD API.
+    """
+
     returnpointer = c_long()  # throwaway C pointer that is passed into functions and stores the return message
     alp_id = c_ulong()  # handle
 
@@ -30,7 +34,7 @@ class DMD(object):
         self.connected = False  # is the device connected?
         self.temps = {'DDC': 0, 'APPS': 0, 'PCB': 0}  # temperatures in deg C
         self.seq_handles = []
-        self.AlpDevAlloc()
+        self._AlpDevAlloc()
 
         self.connected = True
 
@@ -40,8 +44,12 @@ class DMD(object):
         self.ImWidth, self.ImHeight = self._get_device_size()
         self.w, self.h = self.ImWidth, self.ImHeight
         self.pixelsPerIm = self.ImHeight * self.ImWidth
+
         if verbose:
             print('Device image size is {} x {}.'.format(self.ImWidth, self.ImHeight))
+
+        self._projecting = c_long()
+        self._proj_progress = AlpProjProgress()
 
     def _try_reconnect(self):
         print('trying reconnect...')
@@ -84,28 +92,28 @@ class DMD(object):
             raise AlpError('unknown error.')
 
     @_api_call
-    def AlpDevAlloc(self):
+    def _AlpDevAlloc(self):
         return alp_cdll.AlpDevAlloc(ALP_DEFAULT, ALP_DEFAULT, byref(self.alp_id))
 
     @_api_call
-    def AlpDevInquire(self, inquire_type, uservarptr):
+    def _AlpDevInquire(self, inquire_type, uservarptr):
         # todo: check if uservarptr is a CArgObject.
         return alp_cdll.AlpDevInquire(self.alp_id, inquire_type, uservarptr)
 
     @_api_call
-    def AlpDevControl(self, control_type, control_value):
+    def _AlpDevControl(self, control_type, control_value):
         return alp_cdll.AlpDevControl(self.alp_id, control_type, control_value)
 
     @_api_call
-    def AlpDevHalt(self):
+    def _AlpDevHalt(self):
         return alp_cdll.AlpDevHalt(self.alp_id)
 
     @_api_call
-    def AlpDevFree(self):
+    def _AlpDevFree(self):
         return alp_cdll.AlpDevFree(self.alp_id)
 
     @_api_call
-    def AlpSeqAlloc(self, bitplanes, picnum, sequence_id_ptr):
+    def _AlpSeqAlloc(self, bitplanes, picnum, sequence_id_ptr):
         """
         Allocates memory for a specific number of frames (pictures) at a specific bit-depth. Writes a handle to pointer
         for referencing this sequence later.
@@ -118,17 +126,17 @@ class DMD(object):
         return alp_cdll.AlpSeqAlloc(self.alp_id, bitplanes, picnum, sequence_id_ptr)
 
     @_api_call
-    def AlpSeqControl(self, sequence_id, controltype, controlvalue):
+    def _AlpSeqControl(self, sequence_id, controltype, controlvalue):
         return alp_cdll.AlpSeqControl(self.alp_id, sequence_id, controltype, controlvalue)
 
     @_api_call
-    def AlpSeqTiming(self,
-                     sequenceid,
-                     illuminatetime=c_long(ALP_DEFAULT),
-                     picturetime=c_long(ALP_DEFAULT),
-                     syncdelay=c_long(ALP_DEFAULT),
-                     syncpulsewidth=c_long(ALP_DEFAULT),
-                     triggerindelay=c_long(ALP_DEFAULT)):
+    def _AlpSeqTiming(self,
+                      sequenceid,
+                      illuminatetime=c_long(ALP_DEFAULT),
+                      picturetime=c_long(ALP_DEFAULT),
+                      syncdelay=c_long(ALP_DEFAULT),
+                      syncpulsewidth=c_long(ALP_DEFAULT),
+                      triggerindelay=c_long(ALP_DEFAULT)):
         """
         Use picturetime to specify time between consecutive pictures in us.
 
@@ -138,17 +146,19 @@ class DMD(object):
         :param syncdelay: delay between frame sync output and start of display (master mode).
         :param syncpulsewidth: length of sync out pulse (master mode), by default pulse finishes at same time as illumination.
         """
+
+        # todo: verify ctype in the low level API!
         return alp_cdll.AlpSeqTiming(self.alp_id, sequenceid, illuminatetime, picturetime,
                                      syncdelay, syncpulsewidth, triggerindelay)
 
     @_api_call
-    def AlpSeqInquire(self, sequenceid, inquiretype, uservarptr):
+    def _AlpSeqInquire(self, sequenceid, inquiretype, uservarptr):
         return alp_cdll.AlpSeqInquire(self.alp_id, sequenceid, inquiretype, uservarptr)
 
     @_api_call
-    def AlpSeqPut(self, sequenceid, picoffset, n_pix, userarrayptr):
+    def _AlpSeqPut(self, sequenceid, picoffset, n_pix, userarrayptr):
         """
-        Loads image bytes into pre-allocated ALP memory (allocation using AlpSeqAlloc)
+        Loads image bytes into pre-allocated ALP memory (allocation using _AlpSeqAlloc)
 
         ** Blocking until sequence is loaded. **
 
@@ -161,14 +171,14 @@ class DMD(object):
         return alp_cdll.AlpSeqPut(self.alp_id, sequenceid, picoffset, n_pix, userarrayptr)
 
     @_api_call
-    def AlpSeqFree(self, sequenceid):
+    def _AlpSeqFree(self, sequenceid):
         """
         :type sequenceid: c_long
         """
         return alp_cdll.AlpSeqFree(self.alp_id, sequenceid)
 
     @_api_call
-    def AlpProjControl(self, controltype, controlvalue):
+    def _AlpProjControl(self, controltype, controlvalue):
         """
         :type controltype: c_long
         :type controlvalue: c_long
@@ -176,11 +186,11 @@ class DMD(object):
         return alp_cdll.AlpProjControl(self.alp_id, controltype, controlvalue)
 
     @_api_call
-    def AlpProjInquire(self, inquire_type, uservarptr):
+    def _AlpProjInquire(self, inquire_type, uservarptr):
         return alp_cdll.AlpProjInquire(self.alp_id, inquire_type, uservarptr)
 
     @_api_call
-    def AlpProjInquireEx(self, inquire_type, userstructptr):
+    def _AlpProjInquireEx(self, inquire_type, userstructptr):
         """
         Retrieve progress information about active sequences and the sequence queue. The required data structure is
         AlpProjProgress. See also Inquire Progress of Active Sequences.
@@ -195,12 +205,12 @@ class DMD(object):
         """
         Start projection of specified sequence. Returns immediately on call.
 
-        'The sequence display can be stopped using AlpProjHalt or AlpDevHalt.'
+        'The sequence display can be stopped using _AlpProjHalt or _AlpDevHalt.'
 
         'A transition to the next sequence can take place without any gaps, if a sequence display is currently
         active. Depending on the start mode of the current sequence, the switch happens after the completion
         of the last repetition (controlled by ALP_SEQ_REPEAT, AlpProjStart), or after the completion of the
-        current repetition (AlpProjStartCont). Only one sequence start request can be queued. Further
+        current repetition (_AlpProjStartCont). Only one sequence start request can be queued. Further
         requests are replacing the currently waiting request.'
 
         :type sequenceid: c_long
@@ -208,7 +218,7 @@ class DMD(object):
         return alp_cdll.AlpProjStart(self.alp_id, sequenceid)
 
     @_api_call
-    def AlpProjStartCont(self, sequenceid):
+    def _AlpProjStartCont(self, sequenceid):
         """
         Start projection of specified sequence on continuous loop. Returns
         :type sequenceid: c_long
@@ -217,14 +227,14 @@ class DMD(object):
         return alp_cdll.AlpProjStartCont(self.alp_id, sequenceid)
 
     @_api_call
-    def AlpProjHalt(self):
+    def _AlpProjHalt(self):
         """
         halts projection of current sequence.
         """
         return alp_cdll.AlpProjHalt(self.alp_id)
 
     @_api_call
-    def AlpProjWait(self):
+    def _AlpProjWait(self):
         """
         blocking call that returns only when projection is complete.
         """
@@ -233,142 +243,90 @@ class DMD(object):
 
 
     def _get_device_size(self):
+        """
+        :return:  tuple representing (width, height)
+        """
         im_width, im_height = c_long(), c_long()
-        self.AlpDevInquire(ALP_DEV_DISPLAY_WIDTH, byref(im_width))
-        self.AlpDevInquire(ALP_DEV_DISPLAY_HEIGHT, byref(im_height))
+        self._AlpDevInquire(ALP_DEV_DISPLAY_WIDTH, byref(im_width))
+        self._AlpDevInquire(ALP_DEV_DISPLAY_HEIGHT, byref(im_height))
         return im_width.value, im_height.value
 
     def _get_device_status(self):
+        """
+        gets device projection status and returns as an integer. (ie ALP_HALTED)
+        :return:
+        """
         val = c_long()
-        self.AlpDevInquire(ALP_DEV_DMD_MODE, byref(val))
+        self._AlpDevInquire(ALP_DEV_DMD_MODE, byref(val))
         return val.value
 
-    def avail_memory(self):
-        self.AlpDevInquire(ALP_AVAIL_MEMORY, byref(self.returnpointer))
+    #TODO: the block below needs work.
+    def print_avail_memory(self):
+        """
+        prints available memory.
+        """
+        self._AlpDevInquire(ALP_AVAIL_MEMORY, byref(self.returnpointer))
         print("Remaining memory: " + str(self.returnpointer.value) + " / 43690 binary frames")
 
-    def type(self):
-        self.AlpDevInquire(ALP_DEV_DMDTYPE, byref(self.returnpointer))
+    def print_type(self):
+        self._AlpDevInquire(ALP_DEV_DMDTYPE, byref(self.returnpointer))
         print("DMD Type: " + str(self.returnpointer.value))
 
-    def memory(self):
-        self.AlpDevInquire(ALP_AVAIL_MEMORY, byref(self.returnpointer));
+    def print_memory(self):
+        self._AlpDevInquire(ALP_AVAIL_MEMORY, byref(self.returnpointer));
         print("ALP memory: " + str(self.returnpointer.value))
 
-    def projection(self):
-        self.AlpProjInquire(ALP_PROJ_MODE, byref(self.returnpointer))
-        # print("ALP Projection Mode: " + str(self.returnpointer.value))
+    def print_projection(self):
+        self._AlpProjInquire(ALP_PROJ_MODE, byref(self.returnpointer))
+        print("ALP Projection Mode: " + str(self.returnpointer.value))
+
+    @property
+    def projecting(self):
+        """
+        Checks projection state. Returns 0 if not connected. Returns ALP_PROJ_STATE if projecting.
+        :return:
+        """
+        if self.connected:
+            self._AlpProjInquire(ALP_PROJ_STATE, byref(self._projecting))
+            return self._projecting.value
+        else:
+            return 0
+
+    def get_projecting_progress(self) -> AlpProjProgress:
+        """
+        Returns AlpProjProgress structure. See ALP API.
+
+        AlpProjProgress(Structure):
+	     _fields_ = [
+            ("CurrentQueueId", c_ulong),
+            ("SequenceId", c_ulong),
+            ("nWaitingSequences", c_ulong),
+            ("nSequenceCounter", c_ulong),
+            ("nSequenceCounterUnderflow", c_ulong),
+            ("nFrameCounter", c_ulong),
+            ("nPictureTime", c_ulong),
+            ("nFramesPerSubSequence", c_ulong),
+            ("nFlags", c_ulong)
+            ]
+        :return: AlpProjProgress
+        """
+        # warning: not thread-safe, if we're reading values in one thread and reading in another!
+        self._AlpProjInquireEx(ALP_PROJ_PROGRESS, byref(self._proj_progress))
+        return self._proj_progress
 
     def update_temperature(self):
-        self.AlpDevInquire(ALP_DDC_FPGA_TEMPERATURE, byref(self.returnpointer))
+        """
+        updates the object's temps dictionary.
+        :return: None
+        """
+        self._AlpDevInquire(ALP_DDC_FPGA_TEMPERATURE, byref(self.returnpointer))
         self.temps['DDC'] = self.returnpointer.value / 256
 
-        self.AlpDevInquire(ALP_APPS_FPGA_TEMPERATURE, byref(self.returnpointer))
+        self._AlpDevInquire(ALP_APPS_FPGA_TEMPERATURE, byref(self.returnpointer))
         self.temps['APPS'] = self.returnpointer.value / 256
 
-        self.AlpDevInquire(ALP_PCB_TEMPERATURE, byref(self.returnpointer))
+        self._AlpDevInquire(ALP_PCB_TEMPERATURE, byref(self.returnpointer))
         self.temps['PCB'] = self.returnpointer.value / 256
-
-    def upload_multiseq(self, ptn, timing, triggerMode=True, bitnum=1):
-        """
-        upload a series of frames, with one defined sequence per frame. This allows for varying frame durations.
-        ptn: list of numpy arrays, each size (self.ImHeight, self.ImWidth)
-        timing: duration (in milliseconds) of each frame in order
-        triggerMode: frames are advanced by external trigger
-        """
-
-        start = time.clock()
-        # insert empty frame with 0 duration at the beginning
-        # ensures that the first frame is empty while waiting for trigger
-        timing = np.insert(timing, 0, 0)
-        blankframe = np.zeros_like(ptn[0])
-        ptn.insert(0, blankframe)
-        ctypes._reset_cache()
-
-        for p, t in zip(ptn, timing):
-            seq = self.seq_alloc(bitnum, 1)
-            self.seq_timing(seq, t * 1000, 0)  # convert from ms to us
-            self.seq_upload(seq, [p])
-
-            if triggerMode:
-                self.seq_start(seq)
-            # print 'seq uploaded'
-            self.seq_handles.append(seq)
-        end = time.clock()
-        print("Uploaded " + str(len(ptn)) + " in " + str(end - start) + "s")
-
-    def upload_singleptn(self, ptn, dur, bitnum=1):
-        # single pattern that loops. in slave mode, can be triggered every time TTL pulse received
-
-        picnum = 1
-        stimon_time = dur * 1000  # microseconds
-        stimoff_time = 0
-        seq_id = self.seq_alloc(bitnum, picnum)
-
-        self.seq_handles = []
-        self.seq_handles.append(seq_id)
-
-        print(stimon_time, stimoff_time)
-        self.seq_timing(seq_id, stimon_time, stimoff_time)
-
-        self.seq_upload(seq_id, [ptn])
-        self.seq_start_loop(seq_id)
-
-    def upload_singleseq(self, ptn, framedur=10, bitnum=1):
-        # single sequence with fixed frame dur
-        picnum = len(ptn)
-        stimon_time = framedur * 1000  # microseconds
-        stimoff_time = 0
-        seq_id = self.seq_alloc(bitnum, picnum)
-
-        self.seq_handles = []
-        self.seq_handles.append(seq_id)
-
-        print('UPLOADING TO ALP...')
-        print(len(ptn))
-        start = time.clock()
-        self.seq_timing(seq_id, stimon_time, stimoff_time)
-        self.seq_upload(seq_id, ptn)
-        end = time.clock()
-
-        print('Sequence uploaded in ' + str(end - start) + ' ms')
-
-    def Ptn2Char(self, ptn):
-        # handle ALP patterns
-        # flatten pattern sequence to a list, then put in ctype char vector
-        ptn_list = []
-        for frame in ptn:
-            # flatten frame and add it to list
-            ptn_list.extend(frame.flatten().tolist())
-
-        alp_seqdata = c_ubyte * len(ptn_list)
-        alp_seqdata = alp_seqdata()
-
-        # now transfer elementwise from list to char vector (is there better way?)
-        for i in range(len(alp_seqdata)):
-            alp_seqdata[i] = int(ptn_list[i])
-        return alp_seqdata
-
-    def Ptn2Char_fast(self, ptn):
-        c_ubyte_p = POINTER(c_ubyte)
-        start = time.clock()
-
-        nFrames = len(ptn)
-        alp_seqdata = np.zeros([self.pixelsPerIm * nFrames])
-
-        for i, frame in enumerate(ptn):
-            start_ind = i * self.pixelsPerIm
-            end_ind = (i + 1) * self.pixelsPerIm
-            alp_seqdata[start_ind:end_ind] = frame.flatten()
-
-        alp_seqdata = alp_seqdata.astype('int')
-        arr = alp_seqdata.tolist()
-        arr = (c_ubyte * len(arr)).from_buffer_copy(str(bytearray(arr)))
-        return arr
-        # alp_seqdata = alp_seqdata.ctypes.data_as(self.c_ubyte_p)
-        end = time.clock()
-
-        return alp_seqdata.ctypes.data_as(c_ubyte_p)
 
     def proj_mode(self, mode):
         """
@@ -388,7 +346,7 @@ class DMD(object):
                    }
 
         if mode in alpmode:
-            returnvalue = self.AlpProjControl(ALP_PROJ_MODE, alpmode[mode])
+            returnvalue = self._AlpProjControl(ALP_PROJ_MODE, alpmode[mode])
             # print('set PROJ_MODE: ' + mode + ' ' + str(returnvalue))
 
             if mode == 'TTL_seqonset':
@@ -400,7 +358,7 @@ class DMD(object):
             if mode == 'single_TTL':
                 # frames are advanced when TTL pulse is high, in sequence queue mode
 
-                returnvalue = self.AlpProjControl(ALP_PROJ_STEP, ALP_LEVEL_HIGH)
+                returnvalue = self._AlpProjControl(ALP_PROJ_STEP, ALP_LEVEL_HIGH)
                 # step to next frame on rising TTL edge
                 print('single_TTL: ' + str(returnvalue))
 
@@ -414,26 +372,29 @@ class DMD(object):
             print(alpmode.keys())
             raise ValueError('Cannot set projector mode, shutting down...')
 
-    def seq_alloc(self, bitnum, picnum):
+    def seq_alloc(self, bitnum:int, picnum:int) -> "AlpFrameSequence":
         """pre-allocate memory for sequence
         bitnum: bit-depth of sequence, e.g. '1L'
         picnum: # frames in sequence, e.g. '2L'
         
-        returns pointer to this sequence. to free memory, use seq_free()
+        returns AlpFrameSequence pointing to the allocated position.
         """
         seq_id = c_long()  # pointer to seq id
 
-        returnvalue = self.AlpSeqAlloc(bitnum, picnum, byref(seq_id))
-        # print 'seq_alloc with value: ' + str(returnvalue)
-        return seq_id
+        returnvalue = self._AlpSeqAlloc(bitnum, picnum, byref(seq_id))
+        if returnvalue == ALP_OK:
+            seq = AlpFrameSequence(seq_id, bitnum, picnum, self)
+            self.seq_handles.append(seq)
+        return seq
 
-    def seq_free(self, seq_id):
+    def seq_free(self, sequence: "AlpFrameSequence"):
         """free sequence (specify using handle) from memory """
 
-        returnvalue = self.AlpSeqFree(seq_id)
+        returnvalue = self._AlpSeqFree(sequence.seq_id)
+        if returnvalue == ALP_OK:
+            self.seq_handles.remove(sequence)
         if returnvalue == 1003:
             raise ValueError('Try DMD.stop() before attempting to release sequence')
-        print('seq_free: ' + str(returnvalue))
 
     def seq_free_all(self):
         """clear all sequences from DMD"""
@@ -442,43 +403,24 @@ class DMD(object):
 
         self.seq_handles = []
 
-    def seq_timing(self, seq_id, stimon_time, stimoff_time):
+    def _AlpSeqTimingseq_timing(self, sequence: "AlpFrameSequence", stimon_time, stimoff_time):
         """set sequence timing parameters (Master Mode)
         stimon_time e.g. 800000L (microseconds)
         stimoff_time e.g. 200000L
         """
 
         PictureTime = stimon_time + stimoff_time  # ALP-4.2: time between consecutive stim onsets
+        returnvalue = self._AlpSeqTiming(sequence.seq_id, stimon_time, PictureTime, c_long(0), ALP_DEFAULT, ALP_DEFAULT)
 
-        returnvalue = self.AlpSeqTiming(seq_id, stimon_time, PictureTime, 0, ALP_DEFAULT, ALP_DEFAULT)
-        # print 'seq_timing with value: ' + str(returnvalue)
-
-    def seq_upload(self, seq_id, ptn):
-        """
-        uploads single sequence to DMD
-        ptn: list of numpy arrays, each array is one frame in sequence, size [self.ImHeight, self.ImWidth]
-        """
-
-        picnum = len(ptn)
-        PicOffset = 0
-        start = time.clock()
-        seq_data = self.Ptn2Char_fast(ptn)
-        end = time.clock()
-        # print str((end-start)) + 's for Ptn2Char'
-        returnvalue = self.AlpSeqPut(seq_id, PicOffset, picnum, seq_data)
-        del seq_data
-        # print 'seq_upload with value: ' + str(returnvalue)
-
-    def seq_start(self, seq_id):
-        returnvalue = self.AlpProjStart(seq_id)
+    def seq_start(self, sequence):
+        returnvalue = self.AlpProjStart(sequence)
         # print 'seq_start: ' + str(returnvalue)
 
-    def seq_start_loop(self, seq_id):
-        returnvalue = self.AlpProjStartCont(seq_id)
-        print('seq_start (loops): ' + str(returnvalue))
+    def seq_start_loop(self, sequence):
+        returnvalue = self._AlpProjStartCont(sequence)
 
     def seq_queue_mode(self):
-        returnvalue = self.AlpProjControl(ALP_PROJ_QUEUE_MODE, ALP_PROJ_SEQUENCE_QUEUE)
+        returnvalue = self._AlpProjControl(ALP_PROJ_QUEUE_MODE, ALP_PROJ_SEQUENCE_QUEUE)
         # print 'Sequence queue set with : ' + str(returnvalue)
 
     def set_trigger_edge(self, edge_type):
@@ -490,7 +432,7 @@ class DMD(object):
 
         if edge_type in alp_edge_type:
             alp_trigger_value = alp_edge_type[edge_type]
-            returnvalue = self.AlpDevControl(ALP_TRIGGER_EDGE, alp_trigger_value)
+            returnvalue = self._AlpDevControl(ALP_TRIGGER_EDGE, alp_trigger_value)
             print(edge_type + ' trigger set with value: ' + str(returnvalue))
 
         else:
@@ -510,18 +452,104 @@ class DMD(object):
 
     def stop(self):
         if self.connected:
-            returnvalue = self.AlpDevHalt()
+            returnvalue = self._AlpDevHalt()
         # print('seq_stop: ' + str(returnvalue))
 
     def shutdown(self):
         if self.connected:
-            returnvalue = self.AlpDevFree()
+            returnvalue = self._AlpDevFree()
             self.connected = False
         # print('Shutdown value: ' + str(returnvalue))
+        
+    def __enter__(self): return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        print ('DMD shutting down...', end='')
+        self.stop()
+        self.shutdown()
+        print('complete.')
 
     def __del__(self):
         self.stop()
         self.shutdown()
+
+
+class AlpFrameSequence:
+    """
+    Interface with allocated ALP frame sequence buffer. Allows for upload to the memory slot, destruction of the
+    allocation, and projection start of an uploaded frame sequence.
+    """
+    def __init__(self, seq_id: c_long, bitnum, picnum, parent: AlpDmd):
+        """
+
+        :param seq_id:
+        :param bitnum: bit depth of the allocated sequence
+        :param picnum:
+        """
+
+        self.seq_id = seq_id
+        self.bitnum = bitnum
+        self.picnum = picnum
+        self._parent = parent
+        self.w = parent.w
+        self.h = parent.h
+        self.illuminatetime = -1
+        self.picturetime = -1
+        self.syncdelay = -1
+        self.syncpulsewidth = -1
+        self.triggerindelay = -1
+
+    def set_timing(self, illuminatetime=c_long(ALP_DEFAULT),
+                      picturetime=c_long(ALP_DEFAULT),
+                      syncdelay=c_long(ALP_DEFAULT),
+                      syncpulsewidth=c_long(ALP_DEFAULT),
+                      triggerindelay=c_long(ALP_DEFAULT)):
+
+        self._parent._AlpSeqTiming(self.seq_id, illuminatetime, picturetime, syncdelay, syncpulsewidth,
+                                   triggerindelay)
+
+        self.illuminatetime = illuminatetime
+        self.picturetime = picturetime
+        self.syncdelay = syncdelay
+        self.syncpulsewidth = syncpulsewidth
+        self.triggerindelay = triggerindelay
+
+    def gen_array(self):
+        return np.zeros((self.picnum, self._parent.h, self._parent.w), dtype='uint8')
+
+    def upload_array(self, pattern: np.ndarray):
+        """
+        Uploads a numpy uint8 array pattern to parent DMD into this sequence space. This handles the sequence
+        shape definition based on what was allocated, and it handles conversion from numpy array to a C
+        pointer of chars.
+
+        :param pattern: numpy array of uint8 values to be uploaded.
+        """
+
+        assert pattern.dtype == np.uint8
+        patternptr = pattern.ctypes.data_as(POINTER(c_char))
+        self._parent._AlpSeqPut(self.seq_id,  c_long(0), c_long(self.picnum), patternptr)
+
+    def start_projection(self):
+        self._parent.AlpProjStart(self.seq_id)
+
+    def __lt__(self, other):
+        # For sorting.
+        assert isinstance(other, AlpFrameSequence)
+        return self.seq_id.value < other.seq_id.value
+
+    def __int__(self):
+        return self.seq_id.value
+
+    def __del__(self):
+        if self._parent.connected:
+            self._parent.seq_free(self)
+
+    def __str__(self):
+        return 'Sequence {}'.format(self.seq_id.value)
+
+
+# ERROR HANDLING STUFF:
 
 
 class AlpError(Exception):
@@ -542,37 +570,37 @@ except WindowsError as e:
                    "Please add it to use this package.")
 
 
-def powertest(square_size=160):
+def powertest(edge_sz_px=160):
     # import matplotlib.pyplot as plt
     """
+    turns on pixels in a square with specified edge length. This is useful for displaying a 1 mm x 1 mm square for
+    power calibration.
 
-    :param square_size:
+    This
+
+    :param edge_sz_px:
     :return:
     """
-    dmd = DMD()
-    dmd.seq_queue_mode()
-    dmd.proj_mode('master')
-    seq_id = c_long()
-    dmd.AlpSeqAlloc(c_long(1), c_long(1), byref(seq_id))
-    dmd.AlpSeqControl(seq_id, ALP_BIN_MODE, ALP_BIN_UNINTERRUPTED)
-    dmd.AlpSeqTiming(seq_id)
+    with AlpDmd() as dmd:  # context handles shutdown.
+        dmd.seq_queue_mode()
+        dmd.proj_mode('master')
+        seq_id = c_long()
+        dmd._AlpSeqAlloc(c_long(1), c_long(1), byref(seq_id))
+        dmd._AlpSeqControl(seq_id, ALP_BIN_MODE, ALP_BIN_UNINTERRUPTED)
+        dmd._AlpSeqTiming(seq_id)
 
-    seq_array = np.zeros((dmd.h, dmd.w), 'uint8')
-    center_x, center_y = [x//2 for x in (dmd.w, dmd.h)]
-    st_x, st_y = [x - square_size // 2 for x in (center_x, center_y)]
-    nd_x, nd_y = [x - (-square_size // 2) for x in (center_x, center_y)]
-    seq_array[st_y:nd_y, st_x:nd_x] = 255
-    # plt.imshow(seq_array); plt.show()
-    # print(seq_array.sum()/255.)
+        seq_array = np.zeros((dmd.h, dmd.w), 'uint8')
+        center_x, center_y = [x//2 for x in (dmd.w, dmd.h)]
+        st_x, st_y = [x - edge_sz_px // 2 for x in (center_x, center_y)]
+        nd_x, nd_y = [x - (-edge_sz_px // 2) for x in (center_x, center_y)]
+        seq_array[st_y:nd_y, st_x:nd_x] = 255
+        # plt.imshow(seq_array); plt.show()
+        # print(seq_array.sum()/255.)
 
-    dmd.AlpSeqPut(seq_id, c_long(0), c_long(1), seq_array.ctypes.data_as(POINTER(c_char)))
-    dmd.AlpProjStartCont(seq_id)
+        dmd._AlpSeqPut(seq_id, c_long(0), c_long(1), seq_array.ctypes.data_as(POINTER(c_char)))
+        dmd._AlpProjStartCont(seq_id)
+        input("Press Enter key to end...")
 
-    input("Press Enter key to end...")
-
-    dmd.AlpProjHalt()
-    # dmd.stop()
-    dmd.shutdown()
 
 
 def disp_affine_pattern(coords=([450, 300], [550, 275], [500, 430])):
@@ -584,12 +612,12 @@ def disp_affine_pattern(coords=([450, 300], [550, 275], [500, 430])):
         x, y = c
         seq_arr[0, y, x] = 255  # seq array is h, w indexed.
 
-    dmd.AlpSeqPut(seq_id, c_long(0), c_long(1), seq_arr.ctypes.data_as(POINTER(c_char)))
-    dmd.AlpProjStartCont(seq_id)
+    dmd._AlpSeqPut(seq_id, c_long(0), c_long(1), seq_arr.ctypes.data_as(POINTER(c_char)))
+    dmd._AlpProjStartCont(seq_id)
     # plt.imshow(seq_arr[0,:,:]); plt.show()
 
     input("Press Enter key to end...")
-    dmd.AlpProjHalt()
+    dmd._AlpProjHalt()
     dmd.shutdown()
     return coords
 
@@ -598,25 +626,25 @@ def disp_image_pattern(img: np.ndarray, dmd=None):
     assert img.dtype == np.uint8
     dmd, seq_id = init_static_dmd()
     if img.shape == (dmd.h, dmd.w):
-        dmd.AlpSeqPut(seq_id, c_long(0), c_long(1), img.ctypes.data_as(POINTER(c_char)))
-        dmd.AlpProjStartCont(seq_id)
+        dmd._AlpSeqPut(seq_id, c_long(0), c_long(1), img.ctypes.data_as(POINTER(c_char)))
+        dmd._AlpProjStartCont(seq_id)
         input('Press Enter key to end...')
-        dmd.AlpProjHalt()
+        dmd._AlpProjHalt()
     dmd.shutdown()
     return
 
 
-def init_static_dmd() -> (DMD, c_long):
+def init_static_dmd() -> (AlpDmd, c_long):
     """initialize dmd for static (continuous) display of single image.
 
     :return: c_long seq_id for upload later.
     """
-    dmd = DMD()
+    dmd = AlpDmd()
     dmd.seq_queue_mode()
     dmd.proj_mode('master')
     seq_id = c_long()
-    dmd.AlpSeqAlloc(c_long(1), c_long(1), byref(seq_id))
-    dmd.AlpSeqControl(seq_id, ALP_BIN_MODE, ALP_BIN_UNINTERRUPTED)
-    dmd.AlpSeqTiming(seq_id)
+    dmd._AlpSeqAlloc(c_long(1), c_long(1), byref(seq_id))
+    dmd._AlpSeqControl(seq_id, ALP_BIN_MODE, ALP_BIN_UNINTERRUPTED)
+    dmd._AlpSeqTiming(seq_id)
 
     return dmd, seq_id
