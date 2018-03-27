@@ -1,31 +1,13 @@
 # import numba as nb
 import numpy as np
-from dmdlib.randpatterns.shared import run_presentations, zoomer, find_unmasked_px, parser
+from dmdlib.randpatterns.utils import run_presentations, zoomer, find_unmasked_px, reshape
 import os
 if os.name == 'nt':
     appdataroot = os.environ['APPDATA']
     appdatapath = os.path.join(appdataroot, 'dmdlib')
 
 
-# @nb.jit  # numba 0.35.0 doesn't help here at all with fancy indexing
-def reshape(random_unshaped_array, valid_array, seq_array_bool):
-    """ Reshapes a random bool array into the correct shape. Modifies seq_array_bool in place.
 
-    :param random_unshaped_array:
-    :param valid_array: boolean 2d array describing where the random values in random_unshaped_array should be placed.
-    :param seq_array_bool: 3d array (nframes, h, w) with the shape of a (scaled) sequence to be uploaded.
-    :return: none (in place modification of seq_array_bool)
-    """
-
-    n_frames, h, w = seq_array_bool.shape
-    n_valid = valid_array.sum()
-    st = 0
-    nd = n_valid
-    for i in range(n_frames):
-        fr = seq_array_bool[i]
-        fr[valid_array] = random_unshaped_array[st:nd]
-        st += n_valid
-        nd += n_valid
 
 
 def sparsenoise_function_generator(random_threshold):

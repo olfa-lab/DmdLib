@@ -1,6 +1,6 @@
 import numpy as np
-from dmdlib.randpatterns.shared import run_presentations, zoomer, find_unmasked_px, parser
-from dmdlib.randpatterns.sparsenoise import sparsenoise_function_generator
+from dmdlib.randpatterns.utils import run_presentations, parser
+from dmdlib.randpatterns.old.sparsenoise import sparsenoise_function_generator
 import os
 if os.name == 'nt':
     appdataroot = os.environ['APPDATA']

@@ -1,6 +1,6 @@
 import numba as nb
 import random
-from dmdlib.randpatterns.shared import run_presentations, zoomer, parser
+from dmdlib.randpatterns.utils import run_presentations, zoomer, parser
 from dmdlib.randpatterns import test_imgen
 
 

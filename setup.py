@@ -12,10 +12,10 @@ setup(
     keywords="DMD, Vialux, Mightex",
     entry_points={
         'gui_scripts': ['maskmaker=dmdlib.mask_maker.main:main'],
-        'console_scripts': ['sparsenoise=dmdlib.randpatterns.sparsenoise:main',
+        'console_scripts': ['sparsenoise=dmdlib.randpatterns.sparsenoise_obj:main',
                             'scanner=dmdlib.randpatterns.scanner:main',
                             'whitenoise=dmdlib.randpatterns.whitenoise:main',
-                            'multisparse=dmdlib.randpatterns.multisparse:main']
+                            'multisparse=dmdlib.randpatterns.multisparse_obj:main']
 
     }
 )

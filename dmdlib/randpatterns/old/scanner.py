@@ -1,5 +1,4 @@
-from dmdlib.randpatterns.shared import *
-# from dmdlib.randpatterns.sparsenoise import *
+from dmdlib.randpatterns.utils import *
 
 import numpy as np
 
