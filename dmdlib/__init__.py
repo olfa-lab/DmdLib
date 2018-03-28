@@ -1,2 +1,2 @@
 from __future__ import absolute_import
-from . import ALP
+from .core import ALP

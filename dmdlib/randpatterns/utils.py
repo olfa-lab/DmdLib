@@ -22,6 +22,7 @@ def setup_parser():
     parser.add_argument('--overwrite', action='store_true', help='overwrite datafile?')
     parser.add_argument('--nframes', type=int, default=750000, help='total number of frames to present before stopping')
     parser.add_argument('--scale', type=int, default=4, help='scale factor for pixels. NxN physical pixels are treated as a single logical pixel')
+    parser.add_argument('--frames_per_run', type=int, default=60000, help='number of frames to present for each run')
     return parser
 
 
