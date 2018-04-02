@@ -19,7 +19,7 @@ from .utils import zoomer, find_unmasked_px
 class Presenter:
     def __init__(self, dmd: AlpDmd, pattern_generator, saver: HfiveSaver, total_presentations=-1,
                  nseqs=3, pix_per_seq=250, nbits=1, picture_time=10000, image_scale=4,
-                 seq_debug=False, **kwargs):
+                 seq_debug=False):
         """
         :param dmd: AlpDmd object
         :param save_path: path to savefile. This file should exist!!

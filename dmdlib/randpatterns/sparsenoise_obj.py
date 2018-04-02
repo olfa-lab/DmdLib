@@ -39,7 +39,6 @@ class SparseNoise:
 
 
 def main():
-    print('hello')
     parser = utils.setup_parser()
     parser.description = 'Sparsenoise stimulus generator.'
     parser.add_argument('fraction_on', type=float,
@@ -65,12 +64,14 @@ def main():
     with saving.HfiveSaver(fullpath, args.overwrite) as saver, AlpDmd() as dmd:
         saver.store_mask_array(mask)
         uuid = saver.uuid
-        ephys_comms.record_start(uuid, fullpath)
+        if not args.no_phys:
+            ephys_comms.record_start(uuid, fullpath)
         run_id = saver.current_group_id
         for i in range(n_runs):
             print("Starting presentation run {} of {} ({}).".format(i + 1, n_runs, run_id))
-            ephys_comms.record_presentation(run_id)
-            presenter = Presenter(dmd, generator, saver, presentations_per, scale=args.scale,
+            if not args.no_phys:
+                ephys_comms.record_presentation(run_id)
+            presenter = Presenter(dmd, generator, saver, presentations_per, image_scale=args.scale,
                                   picture_time=args.pic_time, )
             presenter.run()
             run_id = saver.iter_pattern_group()
