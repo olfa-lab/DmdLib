@@ -3,7 +3,10 @@ import numpy as np
 from dmdlib.randpatterns.saving import HfiveSaver, SparseSaver
 import os
 import tables as tb
-from itertools import count
+import shutil
+from scipy import sparse
+import json
+import csv
 
 
 class TestHfiveCreation(unittest.TestCase):
@@ -69,7 +72,6 @@ class TestH5_write_completes(unittest.TestCase):
     pth = 'test2.h5'
     def test_write_complete(self):
         data = [np.random.randint(0,2,(500,500,50), dtype=bool) for _ in range(5)]
-
         with HfiveSaver(self.pth, overwrite=True) as f:
             for d in data:
                 f.store_sequence_array(d)
@@ -87,28 +89,55 @@ class TestH5_write_completes(unittest.TestCase):
     def tearDown(self):
         os.remove(self.pth)
 
-#
-# class TestSparseSaver(unittest.TestCase):
-#     workingdir = 'tst'
-#     prefix = 'testsparse'
-#     root_attrs =  {'a1': 'hello, I am here', 'a2': 'goodbye again'}
-#     @classmethod
-#     def setUpClass(self):
-#         os.mkdir(self.workingdir)
-#         self.saver = SparseSaver(self.workingdir, self.prefix, overwrite=True, attributes=self.root_attrs)
-#
-#     def test_
-#
-#
-#
-#
-#     @classmethod
-#     def tearDownClass(self):
-#
-#         os.rmdir(self.workingdir)
-#
+
+class TestSparseSaver(unittest.TestCase):
+    workingdir = 'tst'
+    prefix = 'testsparse'
+    root_attrs =  {'a1': 'hello, I am here', 'a2': 'goodbye again'}
+
+    @classmethod
+    def setUpClass(self):
+        os.mkdir(self.workingdir)
+        self.saver = SparseSaver(self.workingdir, self.prefix, overwrite=True, attributes=self.root_attrs)
+
+    def test_creation(self):
+        self.assertTrue(os.path.exists(os.path.join(self.workingdir, self.prefix+'.json')))
+        with open(self.saver.store_path, 'r') as f:
+            j_dict = json.load(f)
+        for k, v in self.root_attrs.items():
+            self.assertEqual(j_dict[k], v)
+        self.assertEqual(j_dict['uuid'], self.saver.uuid)
+
+    def test_store(self):
+        """
+        Tests that data and associated attributes are stored correctly as sparse matrix.
+        :return:
+        """
+        n, h, w = (50,500, 50)
+        data = np.random.randint(0,2, (n, h,w), dtype=bool)
+        attrs = {'hello': 'goodbye', 'another': 'value'}
+        self.saver.store_sequence_array(data.astype(bool), attrs)
+
+        fn = self.saver._path_start + "_{}:{:06d}.sparse.npz".format(
+            self.saver.current_group_id, self.saver.current_leaf_id-1)
+        ar = sparse.load_npz(fn)  #type: sparse.csr_matrix
+        d = np.asarray(ar.todense(), )
+        d.shape = n, h, w
+        self.assertTrue(np.all(data == d))
+
+        self.assertTrue(os.path.exists(self.saver.framedata_path))
+        self.saver._framedata_file.flush()
+        with open(self.saver.framedata_path) as f:
+            mycsv = csv.DictReader(f)
+            l1 = next(mycsv)
+        for k, v in attrs.items():
+            t = type(v)
+            self.assertEqual(v, t(l1[k]))
 
 
+    @classmethod
+    def tearDownClass(self):
+        shutil.rmtree(self.workingdir)
 
 if __name__ == '__main__':
-    unittest.main(verbosity=2)
+    unittest.main(verbosity=4)
