@@ -146,14 +146,14 @@ class MainWidget(QWidget):
             seq *= 255
             seqpointer = seq.ctypes.data_as(POINTER(c_char))
             seq_id = c_long()
-            self.dmd.AlpSeqAlloc(c_long(1), c_long(1), byref(seq_id))
-            self.dmd.AlpSeqPut(seq_id, c_long(0), c_long(1), seqpointer)
-            self.dmd.AlpProjStartCont(seq_id)
+            self.dmd._AlpSeqAlloc(c_long(1), c_long(1), byref(seq_id))
+            self.dmd._AlpSeqPut(seq_id, c_long(0), c_long(1), seqpointer)
+            self.dmd._AlpProjStartCont(seq_id)
         return
 
     @pyqtSlot()
     def disp_stop(self):
-        self.dmd.AlpProjHalt()
+        self.dmd._AlpProjHalt()
 
     def connect_dmd(self):
         """

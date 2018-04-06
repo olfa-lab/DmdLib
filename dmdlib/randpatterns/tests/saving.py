@@ -141,5 +141,57 @@ class TestSparseSaver(unittest.TestCase):
         shutil.rmtree(self.workingdir)
 
 
+class TestSparseSaverMasked(unittest.TestCase):
+    workingdir = 'tst'
+    prefix = 'testsparse'
+
+    @classmethod
+    def setUpClass(self):
+        os.mkdir(self.workingdir)
+        self.saver = SparseSaver(self.workingdir, self.prefix, overwrite=True)
+
+    def _add_msk(self):
+        msk_fn = 'mask1.npy'
+        self.mask = np.load(msk_fn)
+        self.saver.store_mask_array(self.mask)
+        msk_saveto_path = self.saver._path_start + '_mask.npy'
+        self.assertTrue(os.path.exists(msk_saveto_path))
+        reload = np.load(msk_saveto_path)
+        self.assertTrue(np.all(reload == self.mask))
+
+    def _add_data(self):
+        h, w = self.mask.shape
+        n_frames = 51
+        n_px = self.mask.sum()
+        self.tst_data = np.zeros((n_frames, h, w), bool)
+        for i in range(n_frames):
+            self.tst_data[i, self.mask] = np.random.randint(0,2,n_px, dtype=bool)
+
+        self.saver.store_sequence_array(self.tst_data)
+
+    def _check_data(self):
+
+        fn = "{}_{}:{:06d}.sparse.npz".format(self.saver._path_start,
+                                              self.saver.current_group_id,
+                                              self.saver.current_leaf_id - 1)
+        loaded_from_store = sparse.load_npz(fn)
+        n_frames, n_px = loaded_from_store.shape
+        self.assertTrue(n_px == self.mask.sum())
+        h, w = self.mask.shape
+        loaded_from_store_reshaped = np.zeros((n_frames, h, w), dtype=bool)
+        loaded_from_store_reshaped[:, self.mask] = loaded_from_store.todense()
+        self.assertTrue(np.all(self.tst_data == loaded_from_store_reshaped))
+
+    def test_masked_store(self):
+        self._add_msk()
+        self._add_data()
+        self._check_data()
+
+    @classmethod
+    def tearDownClass(self):
+        shutil.rmtree(self.workingdir)
+
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=4)
