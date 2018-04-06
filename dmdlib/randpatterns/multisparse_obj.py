@@ -104,18 +104,21 @@ def main():
 
     presentations_per = min([60000, args.nframes])
 
+    if not args.no_phys:
+        openephys = ephys_comms.OpenEphysComms()
+
     n_runs = int(np.ceil(args.nframes / presentations_per))
     assert n_runs > 0
     with saving.HfiveSaver(fullpath, args.overwrite) as saver, AlpDmd() as dmd:
         saver.store_mask_array(mask)
         uuid = saver.uuid
         if not args.no_phys:
-            ephys_comms.record_start(uuid, fullpath)
+            openephys.record_start(uuid, fullpath)
         run_id = saver.current_group_id
         for i in range(n_runs):
             print("Starting presentation run {} of {} ({}).".format(i + 1, n_runs, run_id))
             if not args.no_phys:
-                ephys_comms.record_presentation(run_id)
+                openephys.record_presentation(run_id)
             presenter = Presenter(dmd, generator, saver, presentations_per, image_scale=args.scale,
                                   picture_time=args.pic_time, )
             presenter.run()

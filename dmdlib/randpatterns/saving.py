@@ -230,7 +230,7 @@ class SparseSaver(Saver):
     def store_sequence_array(self, seq_array:np.ndarray, attributes=None):
         """
 
-        :param seq_array:
+        :param seq_array: Sequence array to save. If this is a 3d array, it will be saved as a 2d sparse matrix.
         :param attributes: Dictionary
         :return:
         """
@@ -246,12 +246,8 @@ class SparseSaver(Saver):
             if self._framedata_csv is None:
                 self._setup_framedata(list(attributes.keys()))
             self._framedata_csv.writerow(attributes)
-        # print(seq_array)seq_array
-
-
 
         savepath = "{}_{}:{:06d}.sparse.npz".format(self._path_start, self.current_group_id, self.current_leaf_id)
-        # savepath = os.path.join(self._working_dir, filename)
         self._store_sequence(savepath, seq_array)
         self.current_leaf_id += 1
         return
