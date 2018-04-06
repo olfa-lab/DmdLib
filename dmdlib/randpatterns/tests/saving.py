@@ -1,3 +1,7 @@
+"""
+Classes for saving patterns to various formats.
+"""
+
 import unittest
 import numpy as np
 from dmdlib.randpatterns.saving import HfiveSaver, SparseSaver
@@ -10,13 +14,12 @@ import csv
 
 
 class TestHfiveCreation(unittest.TestCase):
-    # counter = count()
+    pth = 'saver_tst{}.h5'
+    root_attrs = {'a1': 88., 'a2': 'hello'}
+
     @classmethod
     def setUpClass(self):
-        self.pth = 'saver_tst{}.h5'
-        self.attributes = {'a1': 88., 'a2': 'hello'}
-
-        self.h5saver = HfiveSaver(self.pth, overwrite=True, attributes=self.attributes)
+        self.h5saver = HfiveSaver(self.pth, overwrite=True, attributes=self.root_attrs)
 
     def test_no_overwrite(self):
         with self.assertRaises(FileExistsError) as ctx:
@@ -25,6 +28,8 @@ class TestHfiveCreation(unittest.TestCase):
 
     def test_creation(self):
         self.assertTrue(os.path.exists(self.pth))
+        with tb.open_file(self.pth) as f:
+            self.assertTrue('/patterns' in f)
 
     def test_attributes(self):
         uuid = self.h5saver.uuid
@@ -32,13 +37,9 @@ class TestHfiveCreation(unittest.TestCase):
             title = f.get_node_attr('/', 'TITLE')  #type: str
             _, uuid_read = title.split(':')
             self.assertEqual(uuid, uuid_read)
-            for k, v in self.attributes.items():
+            for k, v in self.root_attrs.items():
                 a = f.get_node_attr('/', k)
                 self.assertEqual(a, v)
-
-    def test_group(self):
-        with tb.open_file(self.pth) as f:
-            group = f.get_node('/patterns')
 
     def test_iter(self):
         self.assertEqual(self.h5saver.current_group_id, 'aaa')
@@ -101,6 +102,7 @@ class TestSparseSaver(unittest.TestCase):
         self.saver = SparseSaver(self.workingdir, self.prefix, overwrite=True, attributes=self.root_attrs)
 
     def test_creation(self):
+        """tests that files are created."""
         self.assertTrue(os.path.exists(os.path.join(self.workingdir, self.prefix+'.json')))
         with open(self.saver.store_path, 'r') as f:
             j_dict = json.load(f)
@@ -110,8 +112,8 @@ class TestSparseSaver(unittest.TestCase):
 
     def test_store(self):
         """
-        Tests that data and associated attributes are stored correctly as sparse matrix.
-        :return:
+        Tests that data are stored correctly as a sparse matrix. Tests that attribute data csv file is generated as
+        expected and that attributes of the data are saved as specified.
         """
         n, h, w = (50,500, 50)
         data = np.random.randint(0,2, (n, h,w), dtype=bool)
@@ -134,10 +136,10 @@ class TestSparseSaver(unittest.TestCase):
             t = type(v)
             self.assertEqual(v, t(l1[k]))
 
-
     @classmethod
     def tearDownClass(self):
         shutil.rmtree(self.workingdir)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=4)
