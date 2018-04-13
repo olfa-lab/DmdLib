@@ -27,7 +27,6 @@ class Saver(ABC):
         self._futures = []
         self._executor = futures.ThreadPoolExecutor(nthreads)  # IO bound so we'll use threads here.
         self._group_id_counter = AlphaCounter()
-        # self.current_group_id = ''
         self.current_leaf_id = 0
         self.iter_pattern_group()  # iterate to the first pattern group.
 
@@ -81,9 +80,14 @@ class Saver(ABC):
         iterates the pattern group name to next
         :return: the next group id string.
         """
-        self.current_group_id = self._group_id_counter.next()
+        next_group = self._group_id_counter.next()
+        self.current_group_id = next_group
         self.current_leaf_id = 0
-        return self.current_group_id
+        return next_group
+
+    def flush(self):
+        """ Wait for all futures to return (and all files to be written). """
+        self._check_futures(True)
 
 
 class HfiveSaver(Saver):
@@ -197,15 +201,14 @@ class SparseSaver(Saver):
         """
         super(SparseSaver, self).__init__()
 
-        self._file_prefix = file_prefix
-        self._working_dir = working_dir
+        self.prefix = file_prefix
+        self.savedir = working_dir
         assert os.path.exists(working_dir)
 
         self._path_start = os.path.join(working_dir, file_prefix)
         if not overwrite:
             self._check_existing(self._path_start)
         self._file_count = 0
-        self._group_id_counter = AlphaCounter()
         self.store_path = self._path_start + '.json'
         self._setup_store(self.store_path, self.uuid, attributes)
         self.framedata_path = self._path_start + '_framedata.csv'

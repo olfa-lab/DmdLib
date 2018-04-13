@@ -1,7 +1,7 @@
 """
 Classes for saving patterns to various formats.
 """
-
+# import pytest
 import unittest
 import numpy as np
 from dmdlib.randpatterns.saving import HfiveSaver, SparseSaver
@@ -46,6 +46,7 @@ class TestHfiveCreation(unittest.TestCase):
         grpname = self.h5saver.iter_pattern_group()
         self.assertEqual(grpname, 'aab')
         self.assertEqual(self.h5saver.current_group_id, grpname)
+        self.assertEqual(self.h5saver.current_leaf_id, 0)
         # grpname = self.h5saver.iter_pattern_group()
         # self.assertEqual(grpname, 'aac')
 
@@ -62,6 +63,7 @@ class TestHfiveCreation(unittest.TestCase):
                 a = f.get_node_attr(nodename, k)
                 self.assertEqual(a, v)
         self.assertTrue(np.all(retrieved == data))
+        self.assertEqual(self.h5saver.current_leaf_id, 1)
 
     @classmethod
     def tearDownClass(self):
@@ -136,13 +138,25 @@ class TestSparseSaver(unittest.TestCase):
             t = type(v)
             self.assertEqual(v, t(l1[k]))
 
+    def test_iter(self):
+        self.assertEqual(self.saver.current_group_id, 'aaa')
+        next = self.saver.iter_pattern_group()
+        self.assertEqual(next, 'aab')
+        self.assertEqual('aab', self.saver.current_group_id)
+        self.assertEqual(self.saver.current_leaf_id, 0)
+        self.saver.store_sequence_array(np.random.randint(0,2, (20,20)))
+        self.assertEqual(self.saver.current_leaf_id, 1)
+        fn = self.saver._path_start + "_{}:{:06d}.sparse.npz".format(
+            self.saver.current_group_id, self.saver.current_leaf_id - 1)
+        self.assertTrue(os.path.exists(fn))
+
     @classmethod
     def tearDownClass(self):
         shutil.rmtree(self.workingdir)
 
 
 class TestSparseSaverMasked(unittest.TestCase):
-    workingdir = 'tst'
+    workingdir = 'tst2'
     prefix = 'testsparse'
 
     @classmethod
@@ -151,8 +165,7 @@ class TestSparseSaverMasked(unittest.TestCase):
         self.saver = SparseSaver(self.workingdir, self.prefix, overwrite=True)
 
     def _add_msk(self):
-        msk_fn = 'mask1.npy'
-        self.mask = np.load(msk_fn)
+        self.mask = np.random.randint(0, 2, (1200,1000), bool)
         self.saver.store_mask_array(self.mask)
         msk_saveto_path = self.saver._path_start + '_mask.npy'
         self.assertTrue(os.path.exists(msk_saveto_path))
