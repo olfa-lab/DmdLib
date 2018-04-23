@@ -14,19 +14,19 @@ class DatReader:
         :param max_read_secs: maximum amount of data to return in seconds.
         """
 
-        self.filename = filename  # File to read from
-        self.pos = 0              # Position in file
-        self.nch = nch            # Number of recording channels
-        self.fs = fs              # Sampling frequency
-        self.max_secs = max_read_secs          # Max amount of data to load at a time (in seconds)
-        self.min_secs = 1  # minimum number of seconds that we will read
+        self.filename = filename        # File to read from
+        self.pos = 0                    # Position in file
+        self.nch = nch                  # Number of recording channels
+        self.fs = fs                    # Sampling frequency
+        self.max_secs = max_read_secs   # Max amount of data to load at a time (in seconds)
+        self.min_secs = 1               # Min amount of data to read (in seconds)
 
         self._bytes_per_sample = 2 # datatype is int16
         self._max_read_samples = self.max_secs * fs * nch
         self._max_read_bytes = self._max_read_samples * 2
         self._bytes_per_row = self._bytes_per_sample * self.nch
-        min_read_samples = self.min_secs * fs * nch
-        self._min_read_bytes = min_read_samples * self._bytes_per_sample
+        self._min_read_samples = self.min_secs * fs * nch
+        self._min_read_bytes = self._min_read_samples * self._bytes_per_sample
 
     def get_next(self):
         """
@@ -50,14 +50,14 @@ class DatReader:
         )
 
         assert not read_to_pos % self._bytes_per_sample
-        read_count_values = read_to_pos // self._bytes_per_sample  # number of values to read into numpy.
+        # Number of values to read into numpy array
+        read_count_values = (read_to_pos - self.pos) // self._bytes_per_sample
 
         with open(self.filename, 'rb') as fr:
             fr.seek(self.pos)
             data = np.fromfile(fr, count=read_count_values, dtype='int16')
 
-        data = np.reshape(data, [self.nch, data.size // self.nch], order='F')  # why F?
+        data = np.reshape(data, [self.nch, data.size // self.nch], order='F')
 
-        # TODO: Roman, plz check whether we should seek to the last byte we read or to the next byte so we don't double read
         self.pos = read_to_pos  # this is where we'll seek in the next read.
         return data
