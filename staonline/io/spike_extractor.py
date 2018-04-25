@@ -12,8 +12,8 @@ class SpikeExtractor:
         """
         :param data_source: Data source object with a get_next() method
         :param spike_threshold:
-        :param chs_neural:
-        :param ch_frames:
+        :param chs_neural: List of neural channels to process
+        :param ch_frames: Channel containing frame times
         :param n_threads: number of threads to run processing in. (default 6)
         """
 
@@ -81,17 +81,18 @@ class SpikeExtractor:
         """
 
         # Extract frame onset times
-        threshold = min(frame_channel) + max(frame_channel) // 2
+        threshold = (min(frame_channel) + max(frame_channel)) // 2
         bool_frame_channel = frame_channel > threshold
         frame_times = np.convolve(bool_frame_channel, np.array([1, -1]), mode='full')
         frame_times = np.where(frame_times == 1)[0]
 
-        # Check if we ended high on last data pull to prevent doublecounting frames
+        # Check if we ended high on last data pull and this data pull
+        # starts high, we ignore first on-frame to prevent doublecounting
         if self._last_frame_high and frame_times[0] == 0:
-            frame_times[0] = False
+            frame_times[0] = frame_times[1:]
 
         # Check if we ended high on this data pull
-        if frame_times[-1] is True:
+        if bool_frame_channel[-1]:
             self._last_frame_high = True
         else:
             self._last_frame_high = False
