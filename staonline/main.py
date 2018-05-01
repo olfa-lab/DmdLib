@@ -54,6 +54,7 @@ class StaMaker:
                 self.sta += sta
 
             self.frames_processed += next_frameblock.n_frames()
+            n_unprocessed_frametimes -= next_frameblock.n_frames()
 
     def calc_stc(self, spiketimes, frametimes, frame_data:pattern_loader.PatternData):
         """

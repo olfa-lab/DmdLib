@@ -8,7 +8,7 @@ class SpikeExtractor:
     """
     Extracts spikes and frametimes from a datastore.
     """
-    def __init__(self, data_source:storage.DatReader, spike_threshold=3., chs_neural=range(64), ch_frames=72, n_threads=6):
+    def __init__(self, data_source:storage.DatReader, spike_threshold=3.5, chs_neural=range(64), ch_frames=72, n_threads=6):
         """
         :param data_source: Data source object with a get_next() method
         :param spike_threshold:
@@ -24,6 +24,7 @@ class SpikeExtractor:
         self.ch_frame_trig = ch_frames        # Frame channel
 
         self._last_frame_high = False
+        self._read_samples = 0
 
     def get_next(self):
         """
@@ -36,7 +37,7 @@ class SpikeExtractor:
             return None
 
         p_data = np.full((len(self.chs_neural), data.shape[1]), True, dtype=bool)
-        my_futures = {self.executor.submit(self.process_channel, data[x, :] ): x for x in self.chs_neural}
+        my_futures = {self.executor.submit(self.process_channel, data[x, :], self.threshold): x for x in self.chs_neural}
         my_futures[self.executor.submit(self.get_frametimes, data[self.ch_frame_trig, :])] = 'FLAG'
         index = 0      # For indexing into p_data
         # Store processed channels in order of completion
@@ -55,10 +56,13 @@ class SpikeExtractor:
         mua_data = np.logical_or.reduce(p_data)
         spk_times = np.convolve(mua_data, np.array([1, -1]), mode='full')
         spk_times = np.where(spk_times == 1)[0]
+        spk_times += self._read_samples
+        frametimes += self._read_samples
+        self._read_samples += data.shape[1]
         return spk_times, frametimes
 
     @staticmethod
-    def process_channel(channel, threshold=3.,  fs=30000):
+    def process_channel(channel, threshold=3.5,  fs=30000):
         """
 
         :param channel:
@@ -66,12 +70,11 @@ class SpikeExtractor:
         :param fs:
         :return:
         """
-        nband = [x * 1 / (fs / 2) for x in [300, 800]]
-        b, a = signal.butter(4, nband, btype='band')
+        nband = [x * 1 / (fs / 2) for x in [300, 9000]]
+        b, a = signal.butter(5, nband, 'bandpass')
         channel = signal.filtfilt(b, a, channel)
-        mu = np.mean(channel)
-        sd = np.std(channel)
-        out = channel > mu + 3 * sd
+        my_thresh = -channel.std()*threshold
+        out = channel < my_thresh
         return out
 
     def get_frametimes(self,frame_channel):
@@ -81,7 +84,7 @@ class SpikeExtractor:
         """
 
         # Extract frame onset times
-        threshold = (min(frame_channel) + max(frame_channel)) // 2
+        threshold = 15000
         bool_frame_channel = frame_channel > threshold
         frame_times = np.convolve(bool_frame_channel, np.array([1, -1]), mode='full')
         frame_times = np.where(frame_times == 1)[0]
@@ -89,7 +92,7 @@ class SpikeExtractor:
         # Check if we ended high on last data pull and this data pull
         # starts high, we ignore first on-frame to prevent doublecounting
         if self._last_frame_high and frame_times[0] == 0:
-            frame_times[0] = frame_times[1:]
+            frame_times = frame_times[1:]
 
         # Check if we ended high on this data pull
         if bool_frame_channel[-1]:
