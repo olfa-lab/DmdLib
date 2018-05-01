@@ -29,7 +29,7 @@ class PatternLoader:
         self.leaf_counter = 0
 
     def pathmaker(self, group, number):
-        return '{}_{}:{:06n}.sparse.npz'.format(self._file_start, group, number)
+        return '{}_{}-{:06n}.sparse.npz'.format(self._file_start, group, number)
 
     def get_next(self):
         """

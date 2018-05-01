@@ -250,7 +250,7 @@ class SparseSaver(Saver):
                 self._setup_framedata(list(attributes.keys()))
             self._framedata_csv.writerow(attributes)
 
-        savepath = "{}_{}:{:06d}.sparse.npz".format(self._path_start,
+        savepath = "{}_{}-{:06d}.sparse.npz".format(self._path_start,
                                                     self.current_group_id,
                                                     self.current_leaf_id)
         self._store_sequence(savepath, seq_array)
