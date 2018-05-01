@@ -1,25 +1,16 @@
-import os
-import concurrent.futures
 from dmdlib.core.ALP import *
-import tables as tb
 import numpy as np
-from tqdm import tqdm, trange
-from ctypes import *
-from dmdlib.randpatterns import ephys_comms
-from string import ascii_lowercase
-import warnings
+from tqdm import tqdm
 import time
-import uuid
-import numba as nb
-import argparse
 from .saving import HfiveSaver
 
-from .utils import zoomer, find_unmasked_px
 
 class Presenter:
+    """
+    Manages coordination of pattern generation, upload, and saving.
+    """
     def __init__(self, dmd: AlpDmd, pattern_generator, saver: HfiveSaver, total_presentations=-1,
-                 nseqs=3, pix_per_seq=250, nbits=1, picture_time=10000, image_scale=4,
-                 seq_debug=False):
+                 nseqs=3, pix_per_seq=250, nbits=1, picture_time=10000, image_scale=4, seq_debug=False):
         """
         :param dmd: AlpDmd object
         :param save_path: path to savefile. This file should exist!!
@@ -31,12 +22,8 @@ class Presenter:
         :param nbits: bitdepth of uploaded file
         :param picture_time: time in microseconds to display each frame.
         :param image_scale: defines the logical pixel size for the random patterns relative to the physical DMD pixels.
-        :param seq_debug:
-        :param mask:
-        :param kwargs:
+        :param seq_debug: Passed to sequence generator.
         """
-
-        # todo correct the number of sequences to upload...
         self.dmd = dmd
         dmd.proj_mode('master')
         self.saver = saver
@@ -46,19 +33,18 @@ class Presenter:
         self._sequence_freshness = {}
         self.pix_per_seq = pix_per_seq
         self.sequences = self._setup_sequences(nseqs, nbits, pix_per_seq, picture_time)
-        self.seq_array_bool = np.zeros((pix_per_seq, self.dmd.h // self.image_scale, self.dmd.w // self.image_scale),
-                                       dtype=bool)
+        self.seq_array_bool = np.zeros(
+            (pix_per_seq, self.dmd.h // self.image_scale, self.dmd.w // self.image_scale), dtype=bool
+        )
         self.sequence_counter = 0
         self.total_presentations = total_presentations
         self.dmd_proj_status = None
         self.frames_presented = 0
         self.seq_debug = seq_debug
 
-
     def run(self):
         """
         starts a run.
-        :return:
         """
         self._upload_initial_sequences()
         for s in sorted(self.sequences.values()):  # start in order.
@@ -87,7 +73,8 @@ class Presenter:
 
     def _update_projector_progress(self):
         """
-        :return:
+        Routine to check the projector to see which sequence is currently in process of presentation. Once it is being
+        presented, the sequence is marked as "presented"
         """
 
         unfresh = 0
@@ -105,6 +92,7 @@ class Presenter:
 
     def _gen_refresh(self, current_sequence_id):
         """
+        Helper function that generates a list of sequences that is due to be refreshed.
 
         :param current_sequence_id: c_long representing the currently displayed sequence.
         :return: list of sequence-ids for which updates are required.
@@ -120,6 +108,12 @@ class Presenter:
             self.update_sequence(s)
 
     def update_sequence(self, sequence: AlpFrameSequence):
+        """
+        Generates and uploads new sequence using pattern generator object.
+
+        :param sequence: AlpFrameSequence to upload to.
+        """
+
         self.pattern_generator.make_patterns(self.seq_array_bool, sequence.array, self.seq_debug)
         sid = int(sequence)
         seq_meta_dict = {

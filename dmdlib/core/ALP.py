@@ -4,6 +4,7 @@ import ctypes
 from ._alp_defns import *
 import numpy as np
 import time
+import sys
 
 
 def _api_call(function):
@@ -567,13 +568,12 @@ class AlpDisconnectError(AlpError):
 class AlpOutOfMemoryError(AlpError):
     pass
 
-
-
-try:
-    alp_cdll = CDLL('alpV42.dll')
-except WindowsError as e:
-    raise AlpError("The directory containing 'alpV42.dll' is not found in the system (Windows) path. "
-                   "Please add it to use this package.")
+if sys.platform == 'win32':
+    try:
+        alp_cdll = CDLL('alpV42.dll')
+    except WindowsError as e:
+        raise AlpError("The directory containing 'alpV42.dll' is not found in the system (Windows) path. "
+                       "Please add it to use this package.")
 
 
 def powertest(edge_sz_px=160):
