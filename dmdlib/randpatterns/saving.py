@@ -191,7 +191,7 @@ class SparseSaver(Saver):
     '_framedata.csv'.
     """
 
-    def __init__(self, working_dir, file_prefix, overwrite=False, attributes=None):
+    def __init__(self, working_dir, file_prefix='patterns', overwrite=False, attributes=None):
         """
 
         :param working_dir:
