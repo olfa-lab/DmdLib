@@ -86,6 +86,7 @@ def main():
     parser.description = 'Sparsenoise stimulus generator.'
     args = parser.parse_args()
 
+
     fullpath = os.path.abspath(args.savefile)
     if not args.overwrite and os.path.exists(args.savefile):
         errst = "{} already exists.".format(fullpath)
@@ -107,7 +108,7 @@ def main():
         for i in range(n_runs):
             print("Starting presentation run {} of {} ({}).".format(i + 1, n_runs, run_id))
             # ephys_comms.record_presentation(run_id)
-            presenter = Presenter(dmd, generator, saver, presentations_per, scale=args.scale,
+            presenter = Presenter(dmd, generator, saver, presentations_per, image_scale=args.scale,
                                   picture_time=args.pic_time, )
             presenter.run()
             run_id = saver.iter_pattern_group()
