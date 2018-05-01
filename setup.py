@@ -17,7 +17,7 @@ setup(
                             'whitenoise=dmdlib.randpatterns.whitenoise:main',
                             'multisparse=dmdlib.randpatterns.multisparse_obj:main']
 
-    }
+    }, install_requires=['numba', 'numpy']
 )
 
 if os.name == 'nt':

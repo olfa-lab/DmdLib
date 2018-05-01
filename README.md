@@ -6,8 +6,19 @@ The Python API extension was written to enable neuroscience experiments using pa
 stimulation. It includes programs to allow for projecting random stimulation patterns used in recovering receptive fields 
 of neurons and a GUI to allow selection of stimulus ROIs.
 
+# Installation
 
-## ALP v4.2 installation.
+Install with `$ python setup.py install`.
+
+### Requirements
+All of these are satisfied with recent versions of Anaconda Python Distribution except cv2.
+* Python >=3.5
+* numpy
+* numba
+* pytables
+* OpenCV2 (cv2)
+
+### ALP v4.2 installation.
 
 To use this software with an Vialux ALP 4.2 device, you must first install the ALP software and drivers:
 https://www.vialux.de/en/download.html
@@ -17,20 +28,17 @@ the directory will be:
 
 ` C:\ALP-4.2\ALP-4.2 high-speed API\x64\`
  
- Add this directory to your Windows system path. You can find references for how to do this online. You must (?) restart 
- your computer after doing this for the path to be changed.
+Add this directory to your Windows system path. You can find references for how to do this online. You must (?) restart 
+your computer after doing this for the path to be changed.
  
-## randpatterns
-This package was written to allow random pattern stimulation sequences to be projected on the bulb. It is semi-optimized
-using a combination of Numpy and Numba JITed functions to allow for >100 Hz stimulation framerates. It is multithreaded 
-to allow asynchronous IO during stimulus generation and upload.
+# Packages: 
+## core
+This contains an interface with DMD driver interfaces and support files.
 
-It consists of 1 GUI for ROI selection and two command-line programs to generate, save, and upload the patterns to the
-DMD device.
- 
-### Mask Maker
+## mask_maker
 This is a PyQt-based program that allows for a selection of an ROI in which to stimulate. To use, run `mask_maker` from 
-the command line.
+the command line. This allows specification of the area in which you'd like to stimulate to avoid hitting the 
+recording electrodes with light.
 1. load a file and an affine transform matrix (camera to dmd)
 2. click on the image to define an inclusion polygon
 3. calculate the mask. This takes a few seconds.
@@ -39,7 +47,19 @@ the command line.
 
 ![Mask maker](docs/maskmaker.PNG)
 
-### sparsenoise
+This also includes a iPython notebook that guides the user through fitting the affine transform to convert
+image space to DMD pixel space.
+
+
+## randpatterns
+This package was written to allow random pattern stimulation sequences to be projected on the bulb. It is semi-optimized
+using a combination of Numpy and Numba JITed functions to allow for >100 Hz stimulation framerates. It is multithreaded 
+to allow asynchronous IO during stimulus generation and upload.
+
+It consists of 1 GUI for ROI selection and two command-line programs to generate, save, and upload the patterns to the
+DMD device.
+
+## sparsenoise
 This is a command-line program that generates and projects random patterns using the DMD device. To get help with this,
 run the `sparsenoise -h` to list all parameters needed.
 
