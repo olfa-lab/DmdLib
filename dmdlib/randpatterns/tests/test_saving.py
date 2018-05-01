@@ -122,7 +122,7 @@ class TestSparseSaver(unittest.TestCase):
         attrs = {'hello': 'goodbye', 'another': 'value'}
         self.saver.store_sequence_array(data.astype(bool), attrs)
 
-        fn = self.saver._path_start + "_{}:{:06d}.sparse.npz".format(
+        fn = self.saver._path_start + "_{}-{:06d}.sparse.npz".format(
             self.saver.current_group_id, self.saver.current_leaf_id-1)
         ar = sparse.load_npz(fn)  #type: sparse.csr_matrix
         d = np.asarray(ar.todense(), )
@@ -146,7 +146,7 @@ class TestSparseSaver(unittest.TestCase):
         self.assertEqual(self.saver.current_leaf_id, 0)
         self.saver.store_sequence_array(np.random.randint(0,2, (20,20)))
         self.assertEqual(self.saver.current_leaf_id, 1)
-        fn = self.saver._path_start + "_{}:{:06d}.sparse.npz".format(
+        fn = self.saver._path_start + "_{}-{:06d}.sparse.npz".format(
             self.saver.current_group_id, self.saver.current_leaf_id - 1)
         self.assertTrue(os.path.exists(fn))
 
@@ -184,7 +184,7 @@ class TestSparseSaverMasked(unittest.TestCase):
 
     def _check_data(self):
 
-        fn = "{}_{}:{:06d}.sparse.npz".format(self.saver._path_start,
+        fn = "{}_{}-{:06d}.sparse.npz".format(self.saver._path_start,
                                               self.saver.current_group_id,
                                               self.saver.current_leaf_id - 1)
         loaded_from_store = sparse.load_npz(fn)
