@@ -42,9 +42,10 @@ class StaMaker:
 
         while self.pattern_q and n_unprocessed_frametimes >= self.pattern_q[0].n_frames():
             next_frameblock = self.pattern_q.popleft()  # type: pattern_loader.PatternData
-            sta = self.update_sta(
+            print('About to process', (self.frames_processed + next_frameblock.n_frames()) - self.frames_processed, 'frames, total of', self.frames_processed+next_frameblock.n_frames(), 'processed')
+            sta = self.calc_stc(
                 self.all_spikes,
-                self.all_frametimes[self.frames_processed:self.frames_processed + next_frameblock.n_frames()],
+                self.all_frametimes[self.frames_processed:(self.frames_processed + next_frameblock.n_frames())],
                 next_frameblock
             )
 
@@ -73,7 +74,7 @@ class StaMaker:
 
 
         # find how many spikes fall within the bins following our frame presentations:
-        start_stop_times = np.zeros(len(frametimes.frames, 2), 'uint32')
+        start_stop_times = np.zeros((len(frametimes), 2), 'uint32')
 
         start_stop_times[:, 0] = frametimes + self._spike_window_start
         start_stop_times[:, 1] = frametimes + self._spike_window_end

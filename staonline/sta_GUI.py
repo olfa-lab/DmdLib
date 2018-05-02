@@ -16,18 +16,19 @@ progname = os.path.basename(sys.argv[0])
 class MyMplCanvas(FigureCanvas):
     """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
 
-    def __init__(self, maskpath, datpath, framespath, prefix, parent=None, width=5, height=4, dpi=100):
-        fig = Figure(figsize=(width, height), dpi=dpi)
+    def __init__(self,*args, **kwargs):
+        fig = Figure(figsize=(5, 4), dpi=100)
         self.axes = fig.add_subplot(111)
         self.axes.axis('off')
+        # The following four calls are loading variables passed to this class via *args
         self.msk = np.load(maskpath)
-        self.store = main.storage.DatReader(datpath)
+        self.store = main.storage.DatReader(datpath + '\continuous.dat')
         self.se = main.spike_extractor.SpikeExtractor(self.store, 3.5)
-        self.patternloader = main.pattern_loader.PatternLoader(framespath, prefix)
+        self.patternloader = main.pattern_loader.PatternLoader(framepath, frame_prefix)
         self.sta = main.StaMaker(self.se, self.patternloader)
 
         FigureCanvas.__init__(self, fig)
-        self.setParent(parent)
+        self.setParent(None)
 
         FigureCanvas.setSizePolicy(self,
                                    QtWidgets.QSizePolicy.Expanding,
@@ -54,8 +55,11 @@ class MyDynamicMplCanvas(MyMplCanvas):
 
 
 class ApplicationWindow(QtWidgets.QMainWindow):
-    def __init__(self, maskpath, datpath, framespath, prefix):
+    def __init__(self, maskpath, datpath, framepath, frame_prefix):
         QtWidgets.QMainWindow.__init__(self)
+
+        self.data_path = datpath  # Store this to save sta here
+
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setWindowTitle("application main window")
 
@@ -70,8 +74,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
         self.main_widget = QtWidgets.QWidget(self)
 
-        l = QtWidgets.QVBoxLayout(self.main_widget)
-        self.dc = MyDynamicMplCanvas(self.main_widget, maskpath, datpath, framespath, prefix)
+        l = QtWidgets.QVBoxLayout(self.main_widget,)
+        self.dc = MyDynamicMplCanvas(self.main_widget, maskpath, datpath, framepath, frame_prefix)
         l.addWidget(self.dc)
 
         self.main_widget.setFocus()
@@ -81,16 +85,17 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.close()
 
     def closeEvent(self, ce):
-        np.save('sta_array', self.dc.sta.sta)
+        print('Writing STA, quitting...')
+        np.save(self.data_path + '\stc_array', self.dc.sta.sta)
         self.fileQuit()
 
 if __name__ == '__main__':
     qApp = QtWidgets.QApplication(sys.argv)
-    maskpath = ''
-    datpath = ''
-    framepath = ''
-    frame_prefix = ''
-    aw = ApplicationWindow(maskpath,datpath,framepath,frame_prefix)
+    maskpath = r'F:\patterns\mouse_11631_sess1\frames\test_mask.npy'    # Mask path
+    datpath = r'F:\patterns\mouse_11631_sess1'                          # Path to folder with data file (continuous.dat)
+    framepath = r'F:\patterns\mouse_11631_sess1\frames'                 # Path to folder with frame data
+    frame_prefix = r'test'
+    aw = ApplicationWindow(maskpath, datpath, framepath, frame_prefix)
     aw.setWindowTitle("%s" % progname)
     aw.show()
     sys.exit(qApp.exec_())
