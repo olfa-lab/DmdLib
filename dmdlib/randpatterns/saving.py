@@ -13,6 +13,7 @@ from abc import abstractmethod, ABC
 from glob import glob
 import json
 import csv
+from dmdlib.randpatterns.utils import find_unmasked_px
 
 warnings.filterwarnings('ignore', category=tb.NaturalNameWarning)
 
@@ -117,6 +118,7 @@ class HfiveSaver(Saver):
         :param seq_array: numpy array to be saved
         :param attributes: metadata to be saved with the array.
         """
+
 
         self._check_futures()
 
@@ -253,7 +255,8 @@ class SparseSaver(Saver):
         savepath = "{}_{}-{:06d}.sparse.npz".format(self._path_start,
                                                     self.current_group_id,
                                                     self.current_leaf_id)
-        self._store_sequence(savepath, seq_array)
+
+        self._executor.submit(self._store_sequence, savepath, seq_array)
         self.current_leaf_id += 1
         return
 
@@ -263,12 +266,20 @@ class SparseSaver(Saver):
         with open(npz_savepath, 'wb') as npzfile:
             sparse.save_npz(npzfile, sprs_array)
 
-    def store_mask_array(self, array: np.ndarray):
-        """ saves specified pixel mask array to npy file with the path COMMONPREFIX_mask.npy"""
-        path = self._path_start + '_mask.npy'
-        np.save(path, array)
-        self._mask = array
+    def store_mask_array(self, mask_array: np.ndarray, scale: int):
+        """
+        Saves mask array in scaled dimensionality. Input is an numpy array with dimensionality corresponding to the
+        size of the DMD (Height x Width).
 
+        Mask array will be saved as H // scale  x  W // scale
+
+        :param mask_array: Boolean mask array to save (in DMD pixel space : Nframes x Height x Width)
+        :param scale: Image scaling (binning) factor.
+        """
+        path = self._path_start + '_mask.npy'
+        scaled = find_unmasked_px(mask_array, scale)
+        np.save(path, scaled)
+        self._mask = mask_array
 
     def store_affine_matrix(self, matrix: np.ndarray):
         """ saves specified affine transformation (camera to DMD) to npy file."""

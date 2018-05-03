@@ -148,6 +148,7 @@ class TestSparseSaver(unittest.TestCase):
         self.assertEqual(self.saver.current_leaf_id, 1)
         fn = self.saver._path_start + "_{}-{:06d}.sparse.npz".format(
             self.saver.current_group_id, self.saver.current_leaf_id - 1)
+        print(fn)
         self.assertTrue(os.path.exists(fn))
 
     @classmethod
@@ -165,8 +166,8 @@ class TestSparseSaverMasked(unittest.TestCase):
         self.saver = SparseSaver(self.workingdir, self.prefix, overwrite=True)
 
     def _add_msk(self):
-        self.mask = np.random.randint(0, 2, (1200,1000), bool)
-        self.saver.store_mask_array(self.mask)
+        self.mask = np.random.randint(0, 2, (1200, 1000), bool)
+        self.saver.store_mask_array(self.mask, 1)
         msk_saveto_path = self.saver._path_start + '_mask.npy'
         self.assertTrue(os.path.exists(msk_saveto_path))
         reload = np.load(msk_saveto_path)

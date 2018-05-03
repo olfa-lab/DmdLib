@@ -12,15 +12,27 @@ if os.name == 'nt':
 
 
 class BiasedNoise:
-    def __init__(self, bias_path,  mask=None,  scale=1):
+    """
+    Presents random noise patterns with spatially-varying RNG draw probabilities.
+    """
+    def __init__(self, pixel_bias_array_path, mask=None, scale=1):
+        """
+        Bias array should be a .npy file containing an array of floats with length equal to the number of unmasked
+        pixels in SCALED space!
 
-        self.thresholds = np.load(bias_path)
+        :param pixel_bias_array_path: path to .npy file containing bias array
+        :param mask: Image mask DMD denoting which pixels should be used on the DMD.
+        :param scale: Image scaling factor for pixel binning.
+        """
+
+        self.thresholds = np.load(pixel_bias_array_path)
         self.scale = scale
         if mask is not None:
             self.mask = mask
             self.unmasked = utils.find_unmasked_px(mask, scale)
-            self.thresholds_flat = self.thresholds[self.unmasked]
             self.n_unmasked_pix = self.unmasked.sum()
+            assert len(self.thresholds) == self.n_unmasked_pix, 'Number of unmasked pixels (in scaled space) must match' \
+                                                                'the length of the bias array.'
 
     def make_patterns(self, boolean_array: np.ndarray, whole_seq_array: np.ndarray, debug):
         """
@@ -34,7 +46,7 @@ class BiasedNoise:
         n_frames, h, w = boolean_array.shape
         total_randnums = n_frames * self.n_unmasked_pix
         randnums = np.random.rand(total_randnums)
-        randbool = randnums <= self.thresholds_flat
+        randbool = randnums <= self.thresholds
         utils.reshape(randbool, self.unmasked, boolean_array)
         utils.zoomer(boolean_array, self.scale, whole_seq_array)
         whole_seq_array *= self.mask
@@ -56,9 +68,6 @@ def main():
         raise ValueError(errst)
 
     fullpath = os.path.abspath(args.savefile)
-    if not args.overwrite and os.path.exists(args.savefile):
-        errst = "{} already exists.".format(fullpath)
-        raise FileExistsError(errst)
 
     mask = np.load(args.maskfile)
 
@@ -71,8 +80,8 @@ def main():
 
     n_runs = int(np.ceil(args.nframes / presentations_per))
     assert n_runs > 0
-    with saving.SparseSaver(fullpath, args.overwrite) as saver, AlpDmd() as dmd:
-        saver.store_mask_array(mask)
+    with saving.SparseSaver(fullpath, overwrite=args.overwrite) as saver, AlpDmd() as dmd:
+        saver.store_mask_array(mask, args.scale)
         uuid = saver.uuid
         if not args.no_phys:
             openephys.record_start(uuid, fullpath)

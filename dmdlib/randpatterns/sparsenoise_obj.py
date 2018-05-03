@@ -50,9 +50,6 @@ def main():
         raise ValueError(errst)
 
     fullpath = os.path.abspath(args.savefile)
-    if not args.overwrite and os.path.exists(args.savefile):
-        errst = "{} already exists.".format(fullpath)
-        raise FileExistsError(errst)
 
     mask = np.load(args.maskfile)
     generator = SparseNoise(frac, mask, args.scale)
@@ -64,8 +61,8 @@ def main():
 
     n_runs = int(np.ceil(args.nframes / presentations_per))
     assert n_runs > 0
-    with saving.HfiveSaver(fullpath, args.overwrite) as saver, AlpDmd() as dmd:
-        saver.store_mask_array(mask)
+    with saving.SparseSaver(fullpath, overwrite=args.overwrite) as saver, AlpDmd() as dmd:
+        saver.store_mask_array(mask, args.scale)
         uuid = saver.uuid
         if not args.no_phys:
             openephys.record_start(uuid, fullpath)
