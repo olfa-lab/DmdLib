@@ -7,7 +7,7 @@ import pickle
 import cv2
 import json
 try:
-    from dmdlib import ALP
+    from dmdlib.core import ALP
 except:
     pass
 
