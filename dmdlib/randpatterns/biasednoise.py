@@ -46,7 +46,7 @@ class BiasedNoise:
         n_frames, h, w = boolean_array.shape
         total_randnums = n_frames * self.n_unmasked_pix
         randnums = np.random.rand(total_randnums)
-        randbool = randnums <= self.thresholds
+        randbool = randnums <= np.tile(self.thresholds, n_frames)
         utils.reshape(randbool, self.unmasked, boolean_array)
         utils.zoomer(boolean_array, self.scale, whole_seq_array)
         whole_seq_array *= self.mask
