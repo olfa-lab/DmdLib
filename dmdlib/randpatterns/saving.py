@@ -279,7 +279,7 @@ class SparseSaver(Saver):
         path = self._path_start + '_mask.npy'
         scaled = find_unmasked_px(mask_array, scale)
         np.save(path, scaled)
-        self._mask = mask_array
+        self._mask = scaled
 
     def store_affine_matrix(self, matrix: np.ndarray):
         """ saves specified affine transformation (camera to DMD) to npy file."""

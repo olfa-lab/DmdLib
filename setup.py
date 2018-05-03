@@ -15,7 +15,8 @@ setup(
         'console_scripts': ['sparsenoise=dmdlib.randpatterns.sparsenoise_obj:main',
                             'scanner=dmdlib.randpatterns.scanner:main',
                             'whitenoise=dmdlib.randpatterns.whitenoise:main',
-                            'multisparse=dmdlib.randpatterns.multisparse_obj:main']
+                            'multisparse=dmdlib.randpatterns.multisparse_obj:main',
+                            'biasednoise=dmdlib.randpatterns.biasednoise:main']
     }, install_requires=['numba', 'numpy', 'tqdm']
 )
 

@@ -91,10 +91,10 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
 if __name__ == '__main__':
     qApp = QtWidgets.QApplication(sys.argv)
-    maskpath = r'F:\patterns\mouse_11631_sess1\frames\test_mask.npy'    # Mask path
-    datpath = r'F:\patterns\mouse_11631_sess1'                          # Path to folder with data file (continuous.dat)
-    framepath = r'F:\patterns\mouse_11631_sess1\frames'                 # Path to folder with frame data
-    frame_prefix = r'test'
+    maskpath = r'D:\test\frames\patterns_mask.npy'    # Mask path
+    datpath = r'D:\test\2018-05-03_14-35-45\experiment3\recording1\continuous\Rhythm_FPGA-100.0'   # Path to folder with data file (continuous.dat)
+    framepath = r'D:\test\frames'                 # Path to folder with frame data
+    frame_prefix = r'patterns'
     aw = ApplicationWindow(maskpath, datpath, framepath, frame_prefix)
     aw.setWindowTitle("%s" % progname)
     aw.show()

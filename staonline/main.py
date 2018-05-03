@@ -36,11 +36,11 @@ class StaMaker:
         new_frames = self.pattern_source.get_next()  # type: sparse.csr_matrix
         if new_frames:
             self.pattern_q.append(new_frames)
-
         n_frametimes = len(self.all_frametimes)
         n_unprocessed_frametimes = n_frametimes - self.frames_processed
 
         while self.pattern_q and n_unprocessed_frametimes >= self.pattern_q[0].n_frames():
+            print('Here??')
             next_frameblock = self.pattern_q.popleft()  # type: pattern_loader.PatternData
             print('About to process', (self.frames_processed + next_frameblock.n_frames()) - self.frames_processed, 'frames, total of', self.frames_processed+next_frameblock.n_frames(), 'processed')
             sta = self.calc_stc(
