@@ -17,6 +17,17 @@ class MyMplCanvas(FigureCanvas):
     """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
 
     def __init__(self,*args, **kwargs):
+
+        # Generate mask path
+        maskpath = os.path.join(framepath, frame_prefix + '_mask.npy')
+        # Check that necessary files/folders exist
+        if not os.path.exists(datpath + '\continuous.dat'):
+            sys.exit('Data path does not exist. Hit record in OpenEphys before running sta_GUI')
+        elif not os.path.exists(framepath):
+            sys.exit('The frame path you input does not exist')
+        elif not os.path.exists(maskpath):
+            sys.exit('Mask path does not exist. Begin presenting frames before running sta_GUI')
+
         fig = Figure(figsize=(5, 4), dpi=100)
         self.axes = fig.add_subplot(111)
         self.axes.axis('off')
@@ -55,7 +66,7 @@ class MyDynamicMplCanvas(MyMplCanvas):
 
 
 class ApplicationWindow(QtWidgets.QMainWindow):
-    def __init__(self, maskpath, datpath, framepath, frame_prefix):
+    def __init__(self, datpath, framepath, frame_prefix):
         QtWidgets.QMainWindow.__init__(self)
 
         self.data_path = datpath  # Store this to save sta here
@@ -75,7 +86,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.main_widget = QtWidgets.QWidget(self)
 
         l = QtWidgets.QVBoxLayout(self.main_widget,)
-        self.dc = MyDynamicMplCanvas(self.main_widget, maskpath, datpath, framepath, frame_prefix)
+        self.dc = MyDynamicMplCanvas(self.main_widget, datpath, framepath, frame_prefix)
         l.addWidget(self.dc)
 
         self.main_widget.setFocus()
@@ -91,11 +102,12 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
 if __name__ == '__main__':
     qApp = QtWidgets.QApplication(sys.argv)
-    maskpath = r'D:\test\frames\patterns_mask.npy'    # Mask path
-    datpath = r'D:\test\2018-05-03_14-35-45\experiment3\recording1\continuous\Rhythm_FPGA-100.0'   # Path to folder with data file (continuous.dat)
-    framepath = r'D:\test\frames'                 # Path to folder with frame data
-    frame_prefix = r'patterns'
-    aw = ApplicationWindow(maskpath, datpath, framepath, frame_prefix)
+    # Path to folder with data file (continuous.dat)
+    datpath = r'D:\test\2018-05-04_14-50-04\experiment4\recording3\continuous\Rhythm_FPGA-100.0'
+    # Path to folder with frame data
+    framepath = r'D:\test\frames'
+    frame_prefix = r'patterns'   # Do not change this
+    aw = ApplicationWindow(datpath, framepath, frame_prefix)
     aw.setWindowTitle("%s" % progname)
     aw.show()
     sys.exit(qApp.exec_())

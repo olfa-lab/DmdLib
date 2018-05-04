@@ -8,7 +8,7 @@ class SpikeExtractor:
     """
     Extracts spikes and frametimes from a datastore.
     """
-    def __init__(self, data_source:storage.DatReader, spike_threshold=3.5, chs_neural=range(64), ch_frames=72, n_threads=6):
+    def __init__(self, data_source:storage.DatReader, spike_threshold=3.5, chs_neural=range(64), ch_frames=68, n_threads=6):
         """
         :param data_source: Data source object with a get_next() method
         :param spike_threshold:
@@ -34,7 +34,10 @@ class SpikeExtractor:
         """
         data = self.storage.get_next()
         if data is None:
-            return None
+            # No new spike and frame times, return empty arrays
+            out1 = np.array([])
+            out2 = np.array([])
+            return out1, out2
 
         p_data = np.full((len(self.chs_neural), data.shape[1]), True, dtype=bool)
         my_futures = {self.executor.submit(self.process_channel, data[x, :], self.threshold): x for x in self.chs_neural}
